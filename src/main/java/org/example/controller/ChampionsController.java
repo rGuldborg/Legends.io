@@ -1,10 +1,9 @@
 package org.example.controller;
 
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Side;
-import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Label;
@@ -12,11 +11,11 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
+import org.example.ThemeManager;
 import org.example.model.ChampionStats;
 import org.example.model.Role;
 import org.example.service.MockStatsService;
@@ -41,25 +40,26 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ChampionsController {
     private static final int MIN_MATCHUP_GAMES = 5;
+    private static final double ROLE_SHARE_THRESHOLD = 0.02; // 2% of a champion's games
     private static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("+0.0;-0.0");
 
-    @FXML private BorderPane rootPane;
     @FXML private TilePane championsGrid;
     @FXML private Label championNameLabel;
     @FXML private ImageView championImageView;
     @FXML private Label winRateLabel;
     @FXML private HBox detailRoleBar;
-    @FXML private VBox matchupList;
+    @FXML private VBox favorableMatchups;
+    @FXML private VBox challengingMatchups;
 
     private final List<ChampionInfo> championInfos = new ArrayList<>();
     private final Map<String, ChampionInfo> championIndex = new HashMap<>();
     private final Map<String, ChampionStats> statsIndex = new LinkedHashMap<>();
-    private final Map<Role, Image> roleIconCache = new java.util.EnumMap<>(Role.class);
+    private final Map<ThemeManager.Theme, Map<Role, Image>> roleIconCache = new java.util.EnumMap<>(ThemeManager.Theme.class);
 
     private StatsService statsService;
     private ChampionInfo currentChampion;
@@ -72,9 +72,11 @@ public class ChampionsController {
     private ChangeListener<String> searchListener;
     private ChangeListener<Boolean> focusListener;
     private final ContextMenu suggestionPopup = new ContextMenu();
+    private final Consumer<ThemeManager.Theme> themeListener = theme -> Platform.runLater(this::refreshRoleIcons);
 
     @FXML
     public void initialize() {
+        ThemeManager.addThemeChangeListener(themeListener);
         statsService = initStatsService();
         loadChampionInfos();
         populateGrid();
@@ -82,22 +84,6 @@ public class ChampionsController {
             showChampionDetails(championInfos.get(0));
         } else {
             championNameLabel.setText("No champions found");
-        }
-    }
-
-    @FXML
-    private void onBackClicked() {
-        try {
-            detachSearchField();
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/fxml/game-view.fxml"));
-            Node gameView = loader.load();
-            StackPane contentArea = (StackPane) rootPane.getScene().lookup("#contentArea");
-            if (contentArea != null) {
-                contentArea.getChildren().setAll(gameView);
-            }
-        } catch (IOException ex) {
-            System.err.println("Unable to navigate back to game view");
-            ex.printStackTrace();
         }
     }
 
@@ -269,6 +255,7 @@ public class ChampionsController {
 
         currentStats = null;
         currentWinRate = 0.0;
+        resetWinRateStyling();
 
         Optional<ChampionStats> statsOpt = Optional.ofNullable(statsIndex.get(champion.name()));
         if (statsOpt.isEmpty()) {
@@ -278,7 +265,7 @@ public class ChampionsController {
         if (statsOpt.isEmpty()) {
             winRateLabel.setText("Stats unavailable");
             detailRoleBar.getChildren().clear();
-            matchupList.getChildren().setAll(new Label("No matchup data available."));
+            displayMatchupPlaceholder("No matchup data available.");
             return;
         }
 
@@ -286,7 +273,8 @@ public class ChampionsController {
         currentStats = stats;
         double winRate = stats.winRate();
         currentWinRate = winRate;
-        winRateLabel.setText(String.format("Win Rate: %.1f%% (%d games)", winRate * 100, stats.games()));
+        winRateLabel.setText(String.format("Win Rate: %.1f%%", winRate * 100));
+        applyWinRateStyling(winRate);
 
         availableRoles = resolveRolesFromStats(stats);
         activeRole = availableRoles.get(0);
@@ -300,13 +288,30 @@ public class ChampionsController {
         if (counts == null || counts.isEmpty()) {
             return List.of(Role.UNKNOWN);
         }
-        List<Role> roles = counts.entrySet().stream()
+        int totalGames = Math.max(stats.games(), counts.values().stream().mapToInt(Integer::intValue).sum());
+        int minimumRoleGames = totalGames > 0 ? (int) Math.ceil(totalGames * ROLE_SHARE_THRESHOLD) : 0;
+
+        List<RoleShare> sortedRoles = counts.entrySet().stream()
                 .sorted(Entry.<String, Integer>comparingByValue().reversed())
-                .map(entry -> mapRole(entry.getKey()))
-                .filter(role -> role != Role.UNKNOWN)
+                .map(entry -> new RoleShare(mapRole(entry.getKey()), entry.getValue()))
+                .filter(share -> share.role() != Role.UNKNOWN)
+                .toList();
+
+        List<Role> roles = sortedRoles.stream()
+                .filter(share -> share.count() >= minimumRoleGames)
+                .map(RoleShare::role)
                 .distinct()
                 .limit(2)
                 .toList();
+
+        if (roles.isEmpty()) {
+            roles = sortedRoles.stream()
+                    .map(RoleShare::role)
+                    .distinct()
+                    .limit(Math.min(2, sortedRoles.size()))
+                    .toList();
+        }
+
         return roles.isEmpty() ? List.of(Role.UNKNOWN) : roles;
     }
 
@@ -376,33 +381,63 @@ public class ChampionsController {
     }
 
     private void renderMatchups(ChampionStats stats, double winRate) {
-        matchupList.getChildren().clear();
+        favorableMatchups.getChildren().clear();
+        challengingMatchups.getChildren().clear();
         if (stats.counters().isEmpty()) {
-            matchupList.getChildren().add(new Label("No matchup data available."));
+            addEmptyMatchupMessage(favorableMatchups, "No matchup data available.");
+            addEmptyMatchupMessage(challengingMatchups, "No matchup data available.");
             return;
         }
         List<MatchupRow> rows = stats.counters().entrySet().stream()
                 .filter(entry -> shouldIncludeMatchup(entry.getKey()))
                 .filter(entry -> entry.getValue().games() >= MIN_MATCHUP_GAMES)
                 .map(entry -> new MatchupRow(entry.getKey(), entry.getValue().winRate() - winRate, entry.getValue().games()))
-                .sorted(Comparator.comparingDouble(MatchupRow::diff))
                 .toList();
         if (rows.isEmpty()) {
-            matchupList.getChildren().add(new Label("No matchup data for this role."));
+            addEmptyMatchupMessage(favorableMatchups, "No matchup data for this role.");
+            addEmptyMatchupMessage(challengingMatchups, "No matchup data for this role.");
             return;
         }
-        List<MatchupRow> negatives = rows.stream().limit(3).toList();
+
         List<MatchupRow> positives = rows.stream()
+                .filter(row -> row.diff() >= 0)
                 .sorted(Comparator.comparingDouble(MatchupRow::diff).reversed())
-                .limit(3)
+                .limit(10)
                 .toList();
-        if (!positives.isEmpty()) {
-            matchupList.getChildren().add(new Label("Favorable Matchups"));
-            positives.forEach(row -> matchupList.getChildren().add(buildMatchupRow(row)));
+
+        List<MatchupRow> negatives = rows.stream()
+                .filter(row -> row.diff() < 0)
+                .sorted(Comparator.comparingDouble(MatchupRow::diff))
+                .limit(10)
+                .toList();
+
+        populateMatchupColumn(favorableMatchups, positives, "No favorable matchups.");
+        populateMatchupColumn(challengingMatchups, negatives, "No challenging matchups.");
+    }
+
+    private void populateMatchupColumn(VBox container, List<MatchupRow> rows, String emptyMessage) {
+        container.getChildren().clear();
+        if (rows.isEmpty()) {
+            addEmptyMatchupMessage(container, emptyMessage);
+        } else {
+            rows.forEach(row -> container.getChildren().add(buildMatchupRow(row)));
         }
-        if (!negatives.isEmpty()) {
-            matchupList.getChildren().add(new Label("Challenging Matchups"));
-            negatives.forEach(row -> matchupList.getChildren().add(buildMatchupRow(row)));
+    }
+
+    private void addEmptyMatchupMessage(VBox container, String message) {
+        Label placeholder = new Label(message);
+        placeholder.getStyleClass().add("matchup-empty");
+        container.getChildren().add(placeholder);
+    }
+
+    private void displayMatchupPlaceholder(String message) {
+        if (favorableMatchups != null) {
+            favorableMatchups.getChildren().clear();
+            addEmptyMatchupMessage(favorableMatchups, message);
+        }
+        if (challengingMatchups != null) {
+            challengingMatchups.getChildren().clear();
+            addEmptyMatchupMessage(challengingMatchups, message);
         }
     }
 
@@ -414,16 +449,19 @@ public class ChampionsController {
         icon.setFitHeight(28);
         icon.setPreserveRatio(true);
         Label name = new Label(row.enemy());
+        name.getStyleClass().add("matchup-name");
         Label diff = new Label(PERCENT_FORMAT.format(row.diff() * 100) + "%");
         diff.getStyleClass().add(row.diff() >= 0 ? "matchup-positive" : "matchup-negative");
-        Label games = new Label("(" + row.games() + " games)");
-        container.getChildren().addAll(icon, name, diff, games);
+        container.getChildren().addAll(icon, name, diff);
         return container;
     }
 
     private Image roleIcon(Role role) {
-        return roleIconCache.computeIfAbsent(role, r -> {
-            String path = "/org/example/images/roles/" + r.iconFile();
+        ThemeManager.Theme theme = ThemeManager.currentTheme();
+        Map<Role, Image> themedCache = roleIconCache.computeIfAbsent(theme, t -> new java.util.EnumMap<>(Role.class));
+        return themedCache.computeIfAbsent(role, r -> {
+            String folder = theme == ThemeManager.Theme.DARK ? "dark" : "light";
+            String path = "/org/example/images/roles/" + folder + "/" + r.iconFile();
             try {
                 return new Image(Objects.requireNonNull(getClass().getResourceAsStream(path)));
             } catch (Exception ex) {
@@ -447,4 +485,27 @@ public class ChampionsController {
     private record ChampionInfo(String name) { }
 
     private record MatchupRow(String enemy, double diff, int games) { }
+
+    private record RoleShare(Role role, int count) { }
+
+    private void resetWinRateStyling() {
+        winRateLabel.getStyleClass().removeAll("winrate-positive", "winrate-negative");
+    }
+
+    private void applyWinRateStyling(double winRate) {
+        resetWinRateStyling();
+        if (winRate >= 0.5) {
+            winRateLabel.getStyleClass().add("winrate-positive");
+        } else {
+            winRateLabel.getStyleClass().add("winrate-negative");
+        }
+    }
+
+    private void refreshRoleIcons() {
+        roleIconCache.clear();
+        if (detailRoleBar == null || detailRoleBar.getChildren().isEmpty()) {
+            return;
+        }
+        renderRoleChips();
+    }
 }

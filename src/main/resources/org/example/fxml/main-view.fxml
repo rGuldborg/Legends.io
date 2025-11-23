@@ -47,6 +47,7 @@
                         </Button>
 
                         <TextField fx:id="searchField"
+                                   styleClass="header-search-field"
                                    promptText="Search champions..."
                                    prefWidth="320"
                                    maxWidth="320"/>
@@ -98,37 +99,43 @@
                 </right>
             </BorderPane>
 
-            <VBox spacing="10" styleClass="topbar">
-                <padding>
-                    <Insets top="10" right="20" bottom="12" left="20"/>
-                </padding>
-
-                <!-- Navigation row -->
-                <HBox alignment="CENTER" spacing="15">
-                    <Button fx:id="gameButton" text="Game" onAction="#onGameNav" styleClass="flat-button nav-button text-button"/>
-                    <Button fx:id="championsButton" text="Champions" onAction="#onChampionsNav" styleClass="flat-button nav-button text-button"/>
-                </HBox>
-            </VBox>
         </VBox>
     </top>
 
     <!-- MAIN CONTENT -->
     <center>
-        <StackPane fx:id="contentArea">
-            <Label text="Select a view above."
-                   style="-fx-font-size: 18; -fx-text-fill: #cccccc;"/>
-        </StackPane>
+        <VBox styleClass="content-area" spacing="0">
+            <HBox styleClass="tab-bar" alignment="CENTER_LEFT" spacing="4">
+                <Label fx:id="gameTab"
+                       text="Game"
+                       focusTraversable="true"
+                       onMouseClicked="#onGameTabClicked"
+                       onKeyPressed="#onGameTabKey"
+                       styleClass="tab-chip"/>
+                <Label fx:id="championsTab"
+                       text="Champions"
+                       focusTraversable="true"
+                       onMouseClicked="#onChampionsTabClicked"
+                       onKeyPressed="#onChampionsTabKey"
+                       styleClass="tab-chip"/>
+            </HBox>
+            <StackPane fx:id="contentArea" styleClass="view-container" VBox.vgrow="ALWAYS">
+                <Label text="Select a view above."
+                       style="-fx-font-size: 18; -fx-text-fill: #cccccc;"/>
+            </StackPane>
+        </VBox>
     </center>
 
     <!-- FOOTER -->
     <bottom>
-        <HBox alignment="CENTER_LEFT" styleClass="footer">
+        <HBox alignment="CENTER_LEFT" styleClass="footer" spacing="12">
             <padding>
                 <Insets top="10" right="12" bottom="10" left="12"/>
             </padding>
-            <Label text="About" style="-fx-text-fill: #888888;"/>
+            <Label text="About" styleClass="footer-text"/>
             <Pane HBox.hgrow="ALWAYS"/>
-            <Label text="v1.0.0" style="-fx-text-fill: #888888;"/>
+            <Label fx:id="footerLastUpdatedLabel" text="Last updated: --" styleClass="footer-text"/>
+            <Label text="v1.0.0" styleClass="footer-text"/>
         </HBox>
     </bottom>
 

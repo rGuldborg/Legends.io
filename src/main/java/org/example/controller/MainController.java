@@ -5,27 +5,40 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.example.ThemeManager;
 
+import java.io.File;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 public class MainController {
+
+    private static final DateTimeFormatter FOOTER_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final String ACTIVE_TAB_CLASS = "tab-chip-active";
 
     @FXML private TextField searchField;
     @FXML private Button themeToggleButton;
     @FXML private Button refreshButton;
-    @FXML private Button gameButton;
-    @FXML private Button championsButton;
     @FXML private Button minimizeButton;
     @FXML private Button maximizeButton;
     @FXML private Button closeButton;
+    @FXML private Label gameTab;
+    @FXML private Label championsTab;
     @FXML private BorderPane windowHeader;
     @FXML private StackPane contentArea;
     @FXML private Node moonIcon;
     @FXML private Node sunIcon;
+    @FXML private Label footerLastUpdatedLabel;
 
     private boolean darkMode = true; // start in DARK MODE
     private double xOffset;
@@ -42,7 +55,7 @@ public class MainController {
         // Ingen tekst - kun SVG ikoner i FXML
         themeToggleButton.setText("");
         if (refreshButton != null) refreshButton.setText("");
-        flattenButtons(themeToggleButton, refreshButton, gameButton, championsButton,
+        flattenButtons(themeToggleButton, refreshButton,
                 minimizeButton, maximizeButton, closeButton);
         updateThemeIcon();
         Platform.runLater(() -> {
@@ -53,6 +66,8 @@ public class MainController {
 
         // Load the primary GAME view by default so placeholders/map are visible immediately
         loadView("game-view.fxml");
+        setActiveTab(gameTab);
+        updateSnapshotTimestamp();
     }
 
     @FXML
@@ -72,16 +87,45 @@ public class MainController {
     @FXML
     private void onRefresh() {
         System.out.println("REFRESH CLICKED");
+        updateSnapshotTimestamp();
     }
 
     @FXML
     private void onGameNav() {
+        setActiveTab(gameTab);
         loadView("game-view.fxml");
     }
 
     @FXML
     private void onChampionsNav() {
+        setActiveTab(championsTab);
         loadView("champions-view.fxml");
+    }
+
+    @FXML
+    private void onGameTabClicked(MouseEvent event) {
+        onGameNav();
+    }
+
+    @FXML
+    private void onChampionsTabClicked(MouseEvent event) {
+        onChampionsNav();
+    }
+
+    @FXML
+    private void onGameTabKey(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+            onGameNav();
+            event.consume();
+        }
+    }
+
+    @FXML
+    private void onChampionsTabKey(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+            onChampionsNav();
+            event.consume();
+        }
     }
 
     @FXML
@@ -167,5 +211,29 @@ public class MainController {
             sunIcon.setVisible(!darkMode);
         }
     }
-}
 
+    private void updateSnapshotTimestamp() {
+        if (footerLastUpdatedLabel == null) {
+            return;
+        }
+        File snapshotFile = new File("data/snapshot.json");
+        if (!snapshotFile.exists()) {
+            footerLastUpdatedLabel.setText("Last updated: never");
+            return;
+        }
+        Instant lastModified = Instant.ofEpochMilli(snapshotFile.lastModified());
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(lastModified, ZoneId.systemDefault());
+        footerLastUpdatedLabel.setText("Last updated: " + FOOTER_TIME_FORMAT.format(localDateTime));
+    }
+
+    private void setActiveTab(Label activeTab) {
+        Label[] tabs = {gameTab, championsTab};
+        for (Label tab : tabs) {
+            if (tab == null) continue;
+            tab.getStyleClass().remove(ACTIVE_TAB_CLASS);
+        }
+        if (activeTab != null && !activeTab.getStyleClass().contains(ACTIVE_TAB_CLASS)) {
+            activeTab.getStyleClass().add(ACTIVE_TAB_CLASS);
+        }
+    }
+}

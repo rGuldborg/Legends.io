@@ -23,8 +23,8 @@ public class CollectorRunner {
             return;
         }
         String platformTag = System.getenv().getOrDefault("RIOT_PLATFORM", "EUROPE_WEST");
-        int limit = parseIntEnv("MATCH_LIMIT", 300);
-        int seeds = parseIntEnv("SEED_COUNT", 25);
+        int limit = parseIntEnv("MATCH_LIMIT", 10_000);
+        int seeds = parseIntEnv("SEED_COUNT", 150);
         int perSecond = parseIntEnv("RIOT_RATE_PER_SECOND", 20);
         int perTwoMinutes = parseIntEnv("RIOT_RATE_PER_TWO_MINUTES", 100);
         File snapshotFile = new File("data/snapshot.json");

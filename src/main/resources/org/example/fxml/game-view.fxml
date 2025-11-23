@@ -12,6 +12,10 @@
             prefWidth="1200" prefHeight="800"
             styleClass="game-view-root">
 
+    <fx:define>
+        <ToggleGroup fx:id="firstPickGroup"/>
+    </fx:define>
+
     <left>
         <VBox spacing="16">
             <padding>
@@ -66,6 +70,17 @@
                 <Label text="Recommendation Board"
                        style="-fx-font-size: 16; -fx-font-weight: bold;"/>
                 <Pane HBox.hgrow="ALWAYS"/>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="First Pick:" style="-fx-font-size: 12; -fx-font-weight: bold;"/>
+                    <RadioButton fx:id="allyFirstPickRadio"
+                                 text="Your Team"
+                                 toggleGroup="$firstPickGroup"/>
+                    <RadioButton fx:id="enemyFirstPickRadio"
+                                 text="Enemy Team"
+                                 toggleGroup="$firstPickGroup"/>
+                </HBox>
+                <Button fx:id="finishBansButton" text="Finish Bans" onAction="#onFinishBans"/>
+                <CheckBox fx:id="mirrorClientToggle" text="Mirror Live Client"/>
                 <Button text="Clear Selections" onAction="#onClearSelections"/>
             </HBox>
             <Label text="Click a slot on either side, then double-click a champion below to place it. Double-click a slot to clear."

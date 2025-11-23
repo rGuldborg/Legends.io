@@ -8,23 +8,22 @@
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="org.example.controller.ChampionsController"
-            fx:id="rootPane">
-
-    <top>
-        <VBox spacing="8">
-            <HBox spacing="12" alignment="CENTER_LEFT" styleClass="champion-toolbar">
-                <padding>
-                    <Insets top="10" right="14" bottom="10" left="10"/>
-                </padding>
-                <Button text="Back" onAction="#onBackClicked" styleClass="back-button"/>
-                <Label text="Champions" styleClass="champion-title"/>
-            </HBox>
-        </VBox>
-    </top>
+            fx:id="rootPane"
+            styleClass="champions-view-root">
 
     <center>
-        <SplitPane dividerPositions="0.65">
-            <items>
+        <GridPane styleClass="champion-layout" hgap="24">
+            <columnConstraints>
+                <ColumnConstraints percentWidth="58" hgrow="ALWAYS"/>
+                <ColumnConstraints percentWidth="42" hgrow="ALWAYS"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints vgrow="ALWAYS"/>
+            </rowConstraints>
+
+            <StackPane styleClass="champion-pane"
+                       GridPane.columnIndex="0" GridPane.rowIndex="0"
+                       GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS">
                 <ScrollPane fitToWidth="true"
                             fitToHeight="true"
                             hbarPolicy="NEVER"
@@ -32,9 +31,10 @@
                             styleClass="champion-scroll">
                     <content>
                         <TilePane fx:id="championsGrid"
-                                  prefColumns="8"
+                                  prefColumns="7"
                                   hgap="12"
                                   vgap="12"
+                                  alignment="TOP_CENTER"
                                   styleClass="champion-grid">
                             <padding>
                                 <Insets top="20" right="20" bottom="20" left="20"/>
@@ -42,7 +42,11 @@
                         </TilePane>
                     </content>
                 </ScrollPane>
+            </StackPane>
 
+            <StackPane styleClass="champion-pane detail-pane"
+                       GridPane.columnIndex="1" GridPane.rowIndex="0"
+                       GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS">
                 <VBox spacing="12" styleClass="champion-detail-pane">
                     <padding>
                         <Insets top="20" right="20" bottom="20" left="20"/>
@@ -53,10 +57,19 @@
                     <HBox fx:id="detailRoleBar" spacing="6"/>
                     <Separator/>
                     <Label text="Matchups" styleClass="champion-detail-section"/>
-                    <VBox fx:id="matchupList" spacing="8"/>
+                    <HBox spacing="16" styleClass="matchup-columns">
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="matchup-column">
+                            <Label text="Favorable" styleClass="matchup-column-title"/>
+                            <VBox fx:id="favorableMatchups" spacing="6"/>
+                        </VBox>
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="matchup-column">
+                            <Label text="Challenging" styleClass="matchup-column-title"/>
+                            <VBox fx:id="challengingMatchups" spacing="6"/>
+                        </VBox>
+                    </HBox>
                 </VBox>
-            </items>
-        </SplitPane>
+            </StackPane>
+        </GridPane>
     </center>
 
 </BorderPane>

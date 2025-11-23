@@ -25,6 +25,8 @@ public class MatchAggregator {
 
     public StatsSnapshot aggregate(List<String> matchIds) throws InterruptedException {
         Map<String, ChampionStats> champStats = new HashMap<>();
+        long startNanos = System.nanoTime();
+        int processed = 0;
 
         for (String matchId : matchIds) {
             try {
@@ -69,6 +71,10 @@ public class MatchAggregator {
                         }
                     }
                 }
+                processed++;
+                if (processed % 50 == 0 || processed == matchIds.size()) {
+                    logAggregationProgress(processed, matchIds.size(), startNanos);
+                }
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw ie;
@@ -78,6 +84,30 @@ public class MatchAggregator {
         }
 
         return new StatsSnapshot(champStats);
+    }
+
+    private void logAggregationProgress(int processed, int total, long startNanos) {
+        double elapsedSeconds = (System.nanoTime() - startNanos) / 1_000_000_000d;
+        double progress = total > 0 ? (double) processed / total : 0d;
+        double remainingSeconds = progress > 0 && progress < 1
+                ? (elapsedSeconds / progress) - elapsedSeconds
+                : Double.NaN;
+        String etaPart = Double.isNaN(remainingSeconds) ? "" : ", ETA " + formatDuration(remainingSeconds);
+        System.out.println(String.format(
+                "[MatchAggregator] Processed %d/%d matches. Elapsed %s%s",
+                processed, total, formatDuration(elapsedSeconds), etaPart));
+    }
+
+    private String formatDuration(double seconds) {
+        if (Double.isNaN(seconds) || Double.isInfinite(seconds)) {
+            return "?";
+        }
+        if (seconds >= 60) {
+            long minutes = (long) (seconds / 60);
+            double remainder = seconds - minutes * 60;
+            return minutes + "m " + String.format("%.1fs", remainder);
+        }
+        return String.format("%.1fs", seconds);
     }
 
     private JsonNode fetchMatch(String matchId) throws IOException, InterruptedException {

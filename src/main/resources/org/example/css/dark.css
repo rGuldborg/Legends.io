@@ -1,16 +1,92 @@
 .root {
-    -fx-background-color: #0e1b2c;
-    -fx-text-fill: #dce8ff;
+    -fx-background-color: transparent;
+    -fx-text-fill: #e6e8ed;
 }
 
-.topbar { -fx-background-color: #10263d; }
-.footer { -fx-background-color: #10263d; }
+.app-window-shadow {
+    -fx-background-color: transparent;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.55), 35, 0.18, 0, 14);
+}
+
+.app-window {
+    -fx-background-color: #1f2128;
+    -fx-background-radius: 28;
+    -fx-border-radius: 28;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+}
+
+.topbar { -fx-background-color: #1f2128; }
+.footer { -fx-background-color: #1f2128; }
+.footer-text {
+    -fx-text-fill: #f5f6fb;
+}
 
 .window-header {
-    -fx-background-color: #10263d;
+    -fx-background-color: #1f2128;
     -fx-padding: 8 14 8 14;
     -fx-border-color: transparent;
     -fx-border-width: 0;
+}
+
+.window-header Button {
+    -fx-background-color: transparent !important;
+    -fx-border-color: transparent !important;
+    -fx-background-radius: 0 !important;
+    -fx-border-radius: 0 !important;
+    -fx-background-insets: 0 !important;
+    -fx-border-insets: 0 !important;
+    -fx-effect: null !important;
+    -fx-focus-color: transparent !important;
+    -fx-faint-focus-color: transparent !important;
+    -fx-padding: 0 !important;
+    -fx-min-width: 0 !important;
+    -fx-min-height: 0 !important;
+}
+
+.content-area {
+    -fx-background-color: #1f2128;
+    -fx-padding: 12 24 24 24;
+}
+
+.tab-bar {
+    -fx-padding: 0 0 0 16;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-spacing: 4;
+}
+
+.view-container {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-border-radius: 20 20 0 0;
+    -fx-background-radius: 20 20 0 0;
+}
+
+.game-view-root {
+    -fx-background-color: #131417;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+    -fx-border-color: #1c1e24;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 16, 0.18, 0, 5);
+}
+
+.game-view-root > .center,
+.game-view-root > .left,
+.game-view-root > .right,
+.champions-view-root > .center,
+.champions-view-root > .left,
+.champions-view-root > .right {
+    -fx-padding: 0;
+}
+
+.champions-view-root {
+    -fx-background-color: #1f2128;
 }
 
 .window-title {
@@ -68,12 +144,66 @@ Button.window-close:armed {
     -fx-min-height: 0;
 }
 
+.window-header Button.header-icon-button,
+.window-header Button.window-control {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+    -fx-effect: null;
+    -fx-padding: 4 8;
+}
+
+.window-header Button.header-icon-button:hover .window-icon,
+.window-header Button.header-icon-button:focused .window-icon,
+.window-header Button.window-control:hover .window-icon,
+.window-header Button.window-control:focused .window-icon {
+    -fx-stroke: #b4ddff !important;
+}
+
+.window-header Button.header-icon-button:hover .sun-core,
+.window-header Button.header-icon-button:focused .sun-core,
+.window-header Button.header-icon-button:hover .sun-ray,
+.window-header Button.header-icon-button:focused .sun-ray {
+    -fx-stroke: #b4ddff !important;
+}
+
+.window-header Button.header-icon-button:pressed .window-icon,
+.window-header Button.window-control:pressed .window-icon {
+    -fx-stroke: #ffffff !important;
+}
+
+.window-header Button.header-icon-button:pressed .sun-core,
+.window-header Button.header-icon-button:pressed .sun-ray {
+    -fx-stroke: #ffffff !important;
+}
+
+.window-header Button.window-control {
+    -fx-text-fill: #dce8ff;
+}
+
+.window-header Button.window-control:hover,
+.window-header Button.window-control:focused {
+    -fx-text-fill: #b4ddff;
+}
+
+.window-header Button.window-control:pressed {
+    -fx-text-fill: #ffffff;
+}
+
+.window-header Button.window-close:hover .window-icon,
+.window-header Button.window-close:focused .window-icon {
+    -fx-stroke: #ff9c9c;
+}
+.window-header Button.window-close:pressed .window-icon {
+    -fx-stroke: #ffc2c2;
+}
+
 /* Strip chrome from header/nav buttons so only icon/text is visible */
 Button.window-control,
-Button.header-icon-button,
-Button.nav-button,
-Button.text-button,
-Button.flat-button {
+Button.header-icon-button {
     -fx-background-color: transparent !important;
     -fx-border-color: transparent !important;
     -fx-background-insets: 0 !important;
@@ -93,22 +223,25 @@ Button.window-control:focused,
 Button.header-icon-button:hover,
 Button.header-icon-button:pressed,
 Button.header-icon-button:armed,
-Button.header-icon-button:focused,
-Button.nav-button:hover,
-Button.nav-button:pressed,
-Button.nav-button:armed,
-Button.nav-button:focused,
-Button.text-button:hover,
-Button.text-button:pressed,
-Button.text-button:armed,
-Button.text-button:focused,
-Button.flat-button:hover,
-Button.flat-button:pressed,
-Button.flat-button:armed,
-Button.flat-button:focused {
+Button.header-icon-button:focused {
     -fx-background-color: transparent !important;
     -fx-border-color: transparent !important;
     -fx-effect: null !important;
+}
+
+.topbar Button.flat-button,
+.topbar Button.nav-button,
+.topbar Button.text-button {
+    -fx-background-color: transparent !important;
+    -fx-border-color: transparent !important;
+    -fx-background-radius: 0 !important;
+    -fx-border-radius: 0 !important;
+    -fx-background-insets: 0 !important;
+    -fx-border-insets: 0 !important;
+    -fx-effect: null !important;
+    -fx-padding: 0 8 !important;
+    -fx-focus-color: transparent !important;
+    -fx-faint-focus-color: transparent !important;
 }
 
 .thin-stroke {
@@ -136,17 +269,16 @@ Button.flat-button:focused {
 }
 
 .button {
-    -fx-background-color: #16375a;
-    -fx-text-fill: #e5f0ff;
-    -fx-border-color: #1f4c7d;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-padding: 8 16 8 16;
+    -fx-background-color: #2a2d36;
+    -fx-text-fill: #f4f5fb;
+    -fx-border-color: #363947;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16;
     -fx-font-size: 13px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 6, 0, 0, 2);
 }
 
-Button.flat-button,
-Button.text-button,
 Button.window-control,
 Button.header-icon-button {
     -fx-background-color: transparent !important;
@@ -164,65 +296,90 @@ Button.header-icon-button {
     -fx-faint-focus-color: transparent !important;
 }
 
-/* Force header/topbar buttons (window controls, refresh, theme toggle, nav) to be text/icon only */
-.window-header Button,
-.topbar Button {
-    -fx-background-color: transparent !important;
-    -fx-border-color: transparent !important;
-    -fx-background-insets: 0 !important;
-    -fx-border-insets: 0 !important;
-    -fx-background-radius: 0 !important;
-    -fx-border-radius: 0 !important;
-    -fx-padding: 0 4 !important;
-    -fx-min-width: 0 !important;
-    -fx-min-height: 0 !important;
-    -fx-effect: null !important;
-}
-
-.button.flat-button:hover,
-.button.flat-button:pressed,
-.button.flat-button:armed,
-.button.flat-button:focused,
-.button.text-button:hover,
-.button.text-button:pressed,
-.button.text-button:armed,
-.button.text-button:focused {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-text-fill: #ffffff;
-}
-
-.nav-button {
-    -fx-font-weight: bold;
-}
-
 .text-field {
-    -fx-background-color: #133559;
-    -fx-text-fill: #e5f0ff;
-    -fx-border-color: #1f4c7d;
-    -fx-background-radius: 6;
-    -fx-border-radius: 6;
+    -fx-background-color: #1c1e26;
+    -fx-text-fill: #f1f2f7;
+    -fx-border-color: #2f323e;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
     -fx-padding: 8;
     -fx-font-size: 13px;
 }
 
 .button:hover {
-    -fx-background-color: #1a426d;
+    -fx-background-color: #2f5dff;
+    -fx-border-color: #2f5dff;
+    -fx-text-fill: #ffffff;
+}
+.button:pressed,
+.button:armed {
+    -fx-background-color: #2344c0;
+    -fx-border-color: #2344c0;
 }
 .text-field:focused {
-    -fx-border-color: #5fa4ff;
+    -fx-border-color: #2f5dff;
 }
 
-.champion-toolbar {
-    -fx-background-color: #10263d;
-}
-
-.back-button {
+.tab-chip {
+    -fx-text-fill: #aeb4c6;
+    -fx-font-weight: 600;
+    -fx-font-size: 14px;
+    -fx-padding: 10 22 8 22;
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-text-fill: #e5f0ff;
-    -fx-font-size: 14px;
-    -fx-padding: 6 12 6 12;
+    -fx-background-radius: 16 16 0 0;
+    -fx-border-radius: 16 16 0 0;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+    -fx-cursor: hand;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-effect: none;
+}
+
+.tab-chip:hover,
+.tab-chip:focused {
+    -fx-text-fill: #f4f6ff;
+    -fx-background-color: rgba(47, 93, 255, 0.18);
+}
+
+.tab-chip:pressed {
+    -fx-background-color: rgba(47, 93, 255, 0.32);
+    -fx-text-fill: #ffffff;
+}
+
+.tab-chip.tab-chip-active {
+    -fx-background-color: #131417;
+    -fx-border-color: #131417 #131417 transparent #131417;
+    -fx-border-width: 1 1 0 1;
+    -fx-text-fill: #f5f6fb;
+    -fx-padding: 12 26 10 26;
+    -fx-effect: null;
+}
+
+.tab-chip.tab-chip-active:hover,
+.tab-chip.tab-chip-active:focused {
+    -fx-background-color: #15171c;
+    -fx-text-fill: #ffffff;
+}
+
+.header-search-field {
+    -fx-background-color: #1b1d25;
+    -fx-text-fill: #f5f6fb;
+    -fx-prompt-text-fill: rgba(245, 246, 251, 0.5);
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 7 18;
+    -fx-effect: none;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.header-search-field:focused {
+    -fx-background-color: #242731;
+    -fx-border-color: transparent;
 }
 
 .champion-grid {
@@ -234,25 +391,25 @@ Button.header-icon-button {
 }
 
 .champion-scroll > .viewport {
-    -fx-background-color: #081a2b;
+    -fx-background-color: #131417;
 }
 
 .champion-card {
     -fx-alignment: center;
     -fx-padding: 10;
-    -fx-background-color: #142d47;
-    -fx-border-color: #1c3c60;
-    -fx-border-radius: 10;
-    -fx-background-radius: 10;
+    -fx-background-color: #1d1f26;
+    -fx-border-color: #2a2d36;
+    -fx-border-radius: 16;
+    -fx-background-radius: 16;
     -fx-cursor: hand;
 }
 
 .champion-card:hover {
-    -fx-background-color: #194064;
+    -fx-background-color: #242632;
 }
 
 .champion-card-name {
-    -fx-text-fill: #dce8ff;
+    -fx-text-fill: #f1f2f7;
     -fx-font-size: 12px;
     -fx-text-alignment: center;
 }
@@ -263,10 +420,28 @@ Button.header-icon-button {
     -fx-font-size: 13px;
 }
 
+.champion-pane {
+    -fx-background-color: #131417;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-padding: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 16, 0.18, 0, 5);
+}
+
+.champion-pane .scroll-pane,
+.champion-pane .scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
 .champion-detail-pane {
-    -fx-background-color: #0f2238;
-    -fx-border-color: #1c3c60;
-    -fx-border-width: 0 0 0 1;
+    -fx-background-color: #131417;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 16, 0.18, 0, 5);
 }
 
 .champion-detail-name {
@@ -276,9 +451,45 @@ Button.header-icon-button {
 }
 
 .champion-detail-section {
-    -fx-text-fill: #b8d4ff;
+    -fx-text-fill: #ffffff;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
+}
+
+.matchup-columns {
+    -fx-alignment: top-left;
+}
+
+.matchup-column {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.matchup-column-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-opacity: 1;
+}
+
+.matchup-empty {
+    -fx-text-fill: #7a8094;
+    -fx-font-size: 12px;
+    -fx-opacity: 0.8;
+}
+
+.champion-layout {
+    -fx-padding: 0;
+}
+
+.champion-scroll .scroll-bar {
+    -fx-opacity: 0;
+    -fx-pref-width: 0;
+    -fx-background-color: transparent;
+}
+
+.champion-scroll .corner {
+    -fx-background-color: transparent;
 }
 
 .role-chip {
@@ -294,7 +505,7 @@ Button.header-icon-button {
 }
 
 .role-chip.ally {
-    -fx-border-color: rgba(77, 177, 255, 0.35);
+    -fx-border-color: rgba(47, 93, 255, 0.45);
 }
 
 .role-chip.enemy {
@@ -304,9 +515,9 @@ Button.header-icon-button {
 .role-chip.role-chip-active,
 .role-chip.role-chip-active.ally {
     -fx-opacity: 1;
-    -fx-background-color: rgba(77, 177, 255, 0.35);
-    -fx-border-color: #4db1ff;
-    -fx-effect: dropshadow(gaussian, rgba(77, 177, 255, 0.5), 12, 0, 0, 0);
+    -fx-background-color: rgba(47, 93, 255, 0.35);
+    -fx-border-color: #2f5dff;
+    -fx-effect: dropshadow(gaussian, rgba(47, 93, 255, 0.5), 12, 0, 0, 0);
 }
 
 .role-chip.role-chip-active.enemy {
@@ -320,10 +531,10 @@ Button.header-icon-button {
 }
 
 .recommendations-table {
-    -fx-background-color: #0f2238;
+    -fx-background-color: #16171d;
     -fx-border-color: transparent;
     -fx-table-cell-border-color: transparent;
-    -fx-control-inner-background: #0f2238;
+    -fx-control-inner-background: #16171d;
     -fx-faint-focus-color: transparent;
     -fx-focus-color: transparent;
     -fx-padding: 6 8;
@@ -333,12 +544,12 @@ Button.header-icon-button {
 
 .recommendations-table .column-header,
 .recommendations-table .filler {
-    -fx-background-color: #132a44;
+    -fx-background-color: #1f2128;
     -fx-border-color: transparent;
 }
 
 .recommendations-table .column-header .label {
-    -fx-text-fill: #d5e8ff;
+    -fx-text-fill: #f0f1f6;
     -fx-font-weight: bold;
 }
 
@@ -349,15 +560,15 @@ Button.header-icon-button {
 }
 
 .recommendations-table .table-row-cell:odd {
-    -fx-background-color: #132944;
+    -fx-background-color: #1a1c22;
 }
 
 .recommendations-table .table-row-cell:selected {
-    -fx-background-color: #1f3f66;
+    -fx-background-color: rgba(47, 93, 255, 0.18);
 }
 
 .recommendations-table .table-cell {
-    -fx-text-fill: #e5f0ff;
+    -fx-text-fill: #f0f1f6;
     -fx-border-color: transparent;
     -fx-padding: 6 10;
 }
@@ -378,13 +589,25 @@ Button.header-icon-button {
 }
 
 .champion-detail-winrate {
-    -fx-text-fill: #9fd0ff;
+    -fx-text-fill: #ffffff;
     -fx-font-size: 14px;
+}
+
+.winrate-positive {
+    -fx-text-fill: #63e6a5;
+}
+
+.winrate-negative {
+    -fx-text-fill: #ff7f7f;
 }
 
 .matchup-row {
     -fx-alignment: center-left;
     -fx-spacing: 10;
+}
+
+.matchup-name {
+    -fx-text-fill: #ffffff;
 }
 
 .matchup-positive {
@@ -396,18 +619,18 @@ Button.header-icon-button {
 }
 
 .search-suggestions {
-    -fx-background-color: #10263d;
-    -fx-border-color: #1c3c60;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-color: #1b1d25;
+    -fx-border-color: #2a2d36;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
 }
 
 .search-suggestions .list-cell {
-    -fx-text-fill: #e5f0ff;
-    -fx-padding: 4 8;
+    -fx-text-fill: #f0f1f6;
+    -fx-padding: 6 12;
 }
 
 .search-suggestions .list-cell:filled:hover,
 .search-suggestions .list-cell:selected {
-    -fx-background-color: #1a3d61;
+    -fx-background-color: #252834;
 }
