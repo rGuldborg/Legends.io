@@ -90,14 +90,12 @@ public class GameController {
     @FXML private VBox firstPickPrompt;
     @FXML private Button finishBansButton;
 
-    // Ally pick bars
     @FXML private Rectangle allyPick1OpBar, allyPick1SynBar, allyPick1CoBar;
     @FXML private Rectangle allyPick2OpBar, allyPick2SynBar, allyPick2CoBar;
     @FXML private Rectangle allyPick3OpBar, allyPick3SynBar, allyPick3CoBar;
     @FXML private Rectangle allyPick4OpBar, allyPick4SynBar, allyPick4CoBar;
     @FXML private Rectangle allyPick5OpBar, allyPick5SynBar, allyPick5CoBar;
 
-    // Enemy pick bars
     @FXML private Rectangle enemyPick1OpBar, enemyPick1SynBar, enemyPick1CoBar;
     @FXML private Rectangle enemyPick2OpBar, enemyPick2SynBar, enemyPick2CoBar;
     @FXML private Rectangle enemyPick3OpBar, enemyPick3SynBar, enemyPick3CoBar;
@@ -188,7 +186,6 @@ public class GameController {
 
     @FXML
     public void initialize() {
-        System.out.println("[GameController] Loaded game-view!");
         ThemeManager.addThemeChangeListener(themeListener);
         statsService = initStatsService();
         allChampionStatsMap = statsService.allChampionStats();
@@ -1060,7 +1057,6 @@ public class GameController {
             String platformTag = System.getenv().getOrDefault("RIOT_PLATFORM", "EUROPE_WEST");
             return new RiotStatsService(apiKey, platformTag);
         }
-        System.out.println("[GameController] Missing RIOT_API_KEY, using mock data.");
         return new MockStatsService();
     }
 
@@ -1233,20 +1229,13 @@ public class GameController {
             return;
         }
         
-        // The context for fetching a single champion's summary might be simpler,
-        // but it still needs to reflect the current state of the draft
-        // to correctly calculate synergy and counter tiers.
         RecommendationContext context = new RecommendationContext(
                 buildSelections(allyPicks, allyPickRoles),
-                buildSelections(enemyPicks, enemyPickRoles), // Use enemyPickRoles for enemy context.
+                buildSelections(enemyPicks, enemyPickRoles),
                 mergeLists(allyBans, enemyBans),
-                // The target role might be unknown for a single champion summary.
-                // We are getting the summary for the champion in `championName`,
-                // not for a recommendation into `slot`. So the target role for
-                // the summary is not necessarily the role of `slot`.
-                Role.UNKNOWN, // Or derive based on how the champion is primarily played.
-                slot.type.isAlly(), // Perspective of the slot being updated
-                1 // Limit is 1 since we only need one champion's summary
+                Role.UNKNOWN,
+                slot.type.isAlly(),
+                1
         );
 
         statsService.fetchChampionSummary(championName, context).ifPresentOrElse(summary -> {

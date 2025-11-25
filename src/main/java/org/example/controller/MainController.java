@@ -41,7 +41,6 @@ public class MainController {
     @FXML private Button minimizeButton;
     @FXML private Button maximizeButton;
     @FXML private Button closeButton;
-    @FXML private Label profileTab;
     @FXML private Label gameTab;
     @FXML private Label championsTab;
     @FXML private Label helpTab;
@@ -57,24 +56,20 @@ public class MainController {
     private final LeagueClientChampSelectWatcher clientWatcher = new LeagueClientChampSelectWatcher();
     private final SimpleObjectProperty<ChampSelectSnapshot> lcuSnapshot = new SimpleObjectProperty<>();
 
-    private boolean darkMode = true; // start in DARK MODE
+    private boolean darkMode = true;
     private double xOffset;
     private double yOffset;
     private GameController gameController;
     private ChampionsController championsController;
-    private Node profileView;
     private Node gameView;
     private Node championsView;
     private Node helpView;
 
     @FXML
     public void initialize() {
-        System.out.println("MainController initialized");
 
-        // Start med DARK mode
         ThemeManager.applyTheme("dark.css");
 
-        // Ingen tekst - kun SVG ikoner i FXML
         themeToggleButton.setText("");
         if (refreshButton != null) refreshButton.setText("");
         flattenButtons(themeToggleButton, refreshButton,
@@ -86,9 +81,8 @@ public class MainController {
             }
         });
 
-        // Load the primary PROFILE view by default
-        showProfileView();
-        setActiveTab(profileTab);
+        showGameView();
+        setActiveTab(gameTab);
         ensureChampionsViewInitialized();
         updateSnapshotTimestamp();
         updatePatchVersion();
@@ -146,7 +140,7 @@ public class MainController {
     private void onThemeToggle() {
         darkMode = !darkMode;
 
-        themeToggleButton.setText(""); // hold teksten tom
+        themeToggleButton.setText("");
         updateThemeIcon();
 
         if (darkMode) {
@@ -158,14 +152,7 @@ public class MainController {
 
     @FXML
     private void onRefresh() {
-        System.out.println("REFRESH CLICKED");
         updateSnapshotTimestamp();
-    }
-
-    @FXML
-    private void onProfileNav() {
-        setActiveTab(profileTab);
-        showProfileView();
     }
 
     @FXML
@@ -187,11 +174,6 @@ public class MainController {
     }
 
     @FXML
-    private void onProfileTabClicked(MouseEvent event) {
-        onProfileNav();
-    }
-
-    @FXML
     private void onGameTabClicked(MouseEvent event) {
         onGameNav();
     }
@@ -204,14 +186,6 @@ public class MainController {
     @FXML
     private void onHelpTabClicked(MouseEvent event) {
         onHelpNav();
-    }
-
-    @FXML
-    private void onProfileTabKey(KeyEvent event) {
-        if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
-            onProfileNav();
-            event.consume();
-        }
     }
 
     @FXML
@@ -280,26 +254,6 @@ public class MainController {
         }
     }
 
-    private void showProfileView() {
-        Node view = getProfileView();
-        if (view != null) {
-            contentArea.getChildren().setAll(view);
-        }
-    }
-
-    private Node getProfileView() {
-        if (profileView == null) {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/fxml/profile-view.fxml"));
-                profileView = loader.load();
-            } catch (Exception e) {
-                System.err.println("Could not load profile view.");
-                e.printStackTrace();
-            }
-        }
-        return profileView;
-    }
-
     private void showGameView() {
         Node view = getGameView();
         if (view != null) {
@@ -315,7 +269,6 @@ public class MainController {
                 gameController = loader.getController();
                 gameController.bindLcu(lcuSnapshot);
             } catch (Exception e) {
-                System.err.println("Could not load game view.");
                 e.printStackTrace();
             }
         }
@@ -342,7 +295,6 @@ public class MainController {
             }
             championsController.setShowViewRequest(this::showChampionViewFromSearch);
         } catch (Exception e) {
-            System.err.println("Could not load champions view.");
             e.printStackTrace();
         }
     }
@@ -360,7 +312,6 @@ public class MainController {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/fxml/help-view.fxml"));
                 helpView = loader.load();
             } catch (Exception e) {
-                System.err.println("Could not load help view.");
                 e.printStackTrace();
             }
         }
@@ -412,7 +363,7 @@ public class MainController {
     }
 
     private void setActiveTab(Label activeTab) {
-        Label[] tabs = {profileTab, gameTab, championsTab, helpTab};
+        Label[] tabs = {gameTab, championsTab, helpTab};
         for (Label tab : tabs) {
             if (tab == null) continue;
             tab.getStyleClass().remove(ACTIVE_TAB_CLASS);

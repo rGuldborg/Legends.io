@@ -31,13 +31,10 @@ public class AssetNormalizer {
                          if (seen.add(target.getFileName().toString())) {
                              if (!path.equals(target)) {
                                  Files.move(path, target, StandardCopyOption.REPLACE_EXISTING);
-                                 System.out.println("Renamed " + base + " -> " + target.getFileName());
                              }
                          } else {
-                             System.err.println("Duplicate asset name skipped: " + target);
                          }
                      } catch (IOException ex) {
-                         System.err.println("Failed to rename " + path + ": " + ex.getMessage());
                      }
                  });
         }
@@ -61,10 +58,8 @@ public class AssetNormalizer {
                          Path target = dir.resolve(normalized + ".png");
                          if (!path.equals(target)) {
                              Files.move(path, target, StandardCopyOption.REPLACE_EXISTING);
-                             System.out.println("Renamed role icon " + base + " -> " + target.getFileName());
                          }
                      } catch (IOException ex) {
-                         System.err.println("Failed to rename role " + path + ": " + ex.getMessage());
                      }
                  });
         }

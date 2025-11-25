@@ -10,16 +10,10 @@ import java.io.File;
 import java.time.Duration;
 import java.util.List;
 
-/**
- * CLI entry to collect matches, aggregate stats, and write a snapshot JSON.
- * Usage (example):
- *   RIOT_API_KEY=... RIOT_PLATFORM=EUROPE_WEST mvn exec:java -Dexec.mainClass=org.example.collector.CollectorRunner
- */
 public class CollectorRunner {
     public static void main(String[] args) throws Exception {
         String apiKey = System.getenv("RIOT_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
-            System.err.println("[CollectorRunner] Missing RIOT_API_KEY");
             return;
         }
         String platformTag = System.getenv().getOrDefault("RIOT_PLATFORM", "EUROPE_WEST");
@@ -33,7 +27,6 @@ public class CollectorRunner {
         RiotRateLimiter rateLimiter = new RiotRateLimiter(perSecond, Duration.ofSeconds(1), perTwoMinutes, Duration.ofMinutes(2));
         RiotApiClient apiClient = new RiotApiClient(apiKey, rateLimiter);
 
-        System.out.println("[CollectorRunner] Fetching up to " + limit + " matches from queue 420 on " + platform + " with " + seeds + " seeds.");
         MatchFetcher fetcher = new MatchFetcher(platform, apiClient);
         List<String> matchIds = fetcher.fetchRecentMatchIds(Queue.RANKED_SOLO, limit, seeds);
 
@@ -45,7 +38,6 @@ public class CollectorRunner {
             snapshotFile.getParentFile().mkdirs();
         }
         store.save(snapshot);
-        System.out.println("[CollectorRunner] Snapshot saved to " + snapshotFile.getAbsolutePath());
     }
 
     private static int parseIntEnv(String key, int fallback) {
@@ -62,7 +54,6 @@ public class CollectorRunner {
         try {
             return Platform.valueOf(normalized);
         } catch (IllegalArgumentException ex) {
-            System.err.println("[CollectorRunner] Unknown platform '" + tag + "', falling back to EUW.");
             return Platform.EUROPE_WEST;
         }
     }

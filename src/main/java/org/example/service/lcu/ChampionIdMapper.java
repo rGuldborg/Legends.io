@@ -22,7 +22,6 @@ final class ChampionIdMapper {
     private static Map<Integer, String> load() {
         try (InputStream stream = ChampionIdMapper.class.getResourceAsStream(RESOURCE)) {
             if (stream == null) {
-                System.err.println("[ChampionIdMapper] Missing resource " + RESOURCE);
                 return Collections.emptyMap();
             }
             ObjectMapper mapper = new ObjectMapper();
@@ -39,7 +38,6 @@ final class ChampionIdMapper {
             });
             return Map.copyOf(mapping);
         } catch (Exception ex) {
-            System.err.println("[ChampionIdMapper] Failed to load champion metadata: " + ex.getMessage());
             return Collections.emptyMap();
         }
     }

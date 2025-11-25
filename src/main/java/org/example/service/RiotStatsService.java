@@ -5,9 +5,7 @@ import com.merakianalytics.orianna.types.common.Platform;
 import org.example.collector.SnapshotStore;
 import org.example.model.ChampionStats;
 import org.example.model.ChampionSummary;
-import org.example.model.Match;
 import org.example.model.PairWinRate;
-import org.example.model.RankedStats;
 import org.example.model.RecommendationContext;
 import org.example.model.Role;
 import org.example.model.SlotSelection;
@@ -27,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors; // Added
-import java.util.stream.Stream;     // Added
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RiotStatsService implements StatsService {
     private static final double OP_WEIGHT = 0.5;
@@ -53,7 +51,6 @@ public class RiotStatsService implements StatsService {
         try {
             StatsSnapshot snapshot = snapshot();
             if (snapshot == null || snapshot.champions() == null || snapshot.champions().isEmpty()) {
-                System.out.println("[RiotStatsService] No snapshot found, using fallback data.");
                 return fallback.fetchRecommended(context);
             }
             List<ChampionSummary> summaries = new ArrayList<>();
@@ -98,7 +95,6 @@ public class RiotStatsService implements StatsService {
             summaries.sort(Comparator.comparingDouble(ChampionSummary::score).reversed());
             return summaries.size() <= limit ? summaries : summaries.subList(0, limit);
         } catch (Exception ex) {
-            System.err.println("[RiotStatsService] Failed to use snapshot data, falling back. Reason: " + ex.getMessage());
             return fallback.fetchRecommended(context);
         }
     }
@@ -168,95 +164,7 @@ public class RiotStatsService implements StatsService {
         ));
     }
 
-    @Override
-    public Optional<org.example.model.Summoner> fetchSummoner(String gameName, String tagLine, String region) {
-        try {
-            com.merakianalytics.orianna.types.core.summoner.Summoner oriannaSummoner = Orianna.summoner
-                .withGameName(gameName)
-                .withTagLine(tagLine)
-                .withPlatform(Platform.valueOf(region))
-                .get();
 
-            if (oriannaSummoner.exists()) {
-                return Optional.of(new org.example.model.Summoner(
-                    oriannaSummoner.getPuuid(),
-                    oriannaSummoner.getAccount().getGameName(),
-                    oriannaSummoner.getAccount().getTagLine(),
-                    oriannaSummoner.getProfileIcon().getId(),
-                    oriannaSummoner.getLevel()
-                ));
-            }
-        } catch (Exception e) {
-            System.err.println("[RiotStatsService] Error fetching summoner: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public List<org.example.model.Match> fetchMatches(String puuid, String region) {
-        List<org.example.model.Match> matches = new ArrayList<>();
-        try {
-            com.merakianalytics.orianna.types.core.summoner.Summoner oriannaSummoner = Orianna.summoner
-                .withPuuid(puuid)
-                .withPlatform(Platform.valueOf(region))
-                .get();
-
-            if (oriannaSummoner.exists()) {
-                List<com.merakianalytics.orianna.types.core.match.Match> oriannaMatches = Orianna.match.forSummoner(oriannaSummoner).get();
-
-                for (com.merakianalytics.orianna.types.core.match.Match oriannaMatch : oriannaMatches) {
-                    if (oriannaMatch.exists()) {
-                        com.merakianalytics.orianna.types.core.match.Participant participant = oriannaMatch.getParticipants().stream()
-                            .filter(p -> p.getSummoner().getPuuid().equals(puuid))
-                            .findFirst()
-                            .orElse(null);
-
-                        if (participant != null) {
-                            // Extract relevant match data
-                            boolean win = participant.getStats().getWinner();
-                            String championName = participant.getChampion().getName();
-                            int kills = participant.getStats().getKills();
-                            int deaths = participant.getStats().getDeaths();
-                            int assists = participant.getStats().getAssists();
-                            
-                            // For simplicity, items are just names. Orianna provides item objects.
-                            List<String> items = new ArrayList<>();
-                            if (participant.getStats().getItem0() != null) items.add(participant.getStats().getItem0().getName());
-                            if (participant.getStats().getItem1() != null) items.add(participant.getStats().getItem1().getName());
-                            if (participant.getStats().getItem2() != null) items.add(participant.getStats().getItem2().getName());
-                            if (participant.getStats().getItem3() != null) items.add(participant.getStats().getItem3().getName());
-                            if (participant.getStats().getItem4() != null) items.add(participant.getStats().getItem4().getName());
-                            if (participant.getStats().getItem5() != null) items.add(participant.getStats().getItem5().getName());
-                            if (participant.getStats().getItem6() != null) items.add(participant.getStats().getItem6().getName());
-
-                            matches.add(new org.example.model.Match(
-                                String.valueOf(oriannaMatch.getId()), // This is the only change from original
-                                oriannaMatch.getCreationTime().getMillis(),
-                                win,
-                                championName,
-                                kills,
-                                deaths,
-                                assists,
-                                items
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception e) {
-            System.err.println("[RiotStatsService] Error fetching matches: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return matches;
-    }
-
-    @Override
-    public Optional<RankedStats> fetchRankedStats(String summonerId, String region) {
-        // TODO: Implement with Orianna
-        return Optional.empty();
-    }
 
     private StatsSnapshot snapshot() {
         long modified = snapshotFile.exists() ? snapshotFile.lastModified() : -1L;
@@ -267,7 +175,6 @@ public class RiotStatsService implements StatsService {
             cachedSnapshot = new SnapshotStore(snapshotFile).load();
             cachedStamp = modified;
         } catch (IOException e) {
-            System.err.println("[RiotStatsService] Could not load snapshot: " + e.getMessage());
             cachedSnapshot = null;
         }
         return cachedSnapshot;
@@ -364,7 +271,6 @@ public class RiotStatsService implements StatsService {
         try {
             return Platform.valueOf(normalized);
         } catch (IllegalArgumentException ex) {
-            System.err.println("[RiotStatsService] Unknown platform '" + tag + "', falling back to EUW.");
             return Platform.EUROPE_WEST;
         }
     }

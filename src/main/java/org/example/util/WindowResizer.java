@@ -5,9 +5,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
-/**
- * Adds basic edge-drag resizing for transparent windows.
- */
 public final class WindowResizer {
     private static final double BORDER = 8.0;
 

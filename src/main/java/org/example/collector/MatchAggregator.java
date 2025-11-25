@@ -73,13 +73,11 @@ public class MatchAggregator {
                 }
                 processed++;
                 if (processed % 50 == 0 || processed == matchIds.size()) {
-                    logAggregationProgress(processed, matchIds.size(), startNanos);
                 }
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw ie;
             } catch (IOException e) {
-                System.err.println("[MatchAggregator] Failed to load match " + matchId + ": " + e.getMessage());
             }
         }
 
@@ -93,9 +91,6 @@ public class MatchAggregator {
                 ? (elapsedSeconds / progress) - elapsedSeconds
                 : Double.NaN;
         String etaPart = Double.isNaN(remainingSeconds) ? "" : ", ETA " + formatDuration(remainingSeconds);
-        System.out.println(String.format(
-                "[MatchAggregator] Processed %d/%d matches. Elapsed %s%s",
-                processed, total, formatDuration(elapsedSeconds), etaPart));
     }
 
     private String formatDuration(double seconds) {

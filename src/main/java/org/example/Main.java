@@ -17,11 +17,10 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        System.out.println("Launching JavaFX...");
+
 
         FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/org/example/fxml/main-view.fxml"));
 
-        System.out.println("Loading FXML: /org/example/fxml/main-view.fxml");
         Parent mainContent = fxmlLoader.load();
         mainController = fxmlLoader.getController();
 
@@ -39,13 +38,10 @@ public class Main extends Application {
 
         Scene scene = new Scene(windowRoot, 1400, 1000);
         scene.setFill(Color.TRANSPARENT);
-        System.out.println("FXML loaded into Scene");
 
         ThemeManager.setScene(scene);
-        System.out.println("Scene registered in ThemeManager");
 
         ThemeManager.applyTheme("dark.css");
-        System.out.println("Dark theme applied at startup");
 
         stage.initStyle(StageStyle.TRANSPARENT);
         stage.setTitle("League Assistant FX");
@@ -56,12 +52,10 @@ public class Main extends Application {
         WindowResizer.makeResizable(stage, windowRoot);
         stage.show();
 
-        System.out.println("=== App Started Successfully ===");
     }
 
     @Override
     public void stop() {
-        System.out.println("Stopping application...");
         if (mainController != null) {
             mainController.stop();
         }
@@ -71,3 +65,4 @@ public class Main extends Application {
         launch();
     }
 }
+

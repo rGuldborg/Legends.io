@@ -1,9 +1,5 @@
 package org.example.service;
 
-import org.example.model.Match;
-import org.example.model.RankedStats;
-import org.example.model.Summoner;
-
 import org.example.model.ChampionStats;
 import org.example.model.ChampionSummary;
 import org.example.model.PairWinRate;
@@ -128,46 +124,7 @@ public class MockStatsService implements StatsService {
         ));
     }
 
-    @Override
-    public Optional<Summoner> fetchSummoner(String gameName, String tagLine, String region) {
-        return Optional.of(new Summoner(
-            "mock_puuid",
-            gameName,
-            tagLine,
-            4643, // A random icon
-            150L
-        ));
-    }
 
-    @Override
-    public List<Match> fetchMatches(String puuid, String region) {
-        List<Match> matches = new ArrayList<>();
-        Random random = new Random(puuid.hashCode());
-        for (int i = 0; i < 10; i++) {
-            matches.add(new Match(
-                "match_" + i,
-                System.currentTimeMillis() - (i * 3600000L),
-                random.nextBoolean(),
-                ChampionNames.canonicalNames().get(random.nextInt(ChampionNames.canonicalNames().size())),
-                random.nextInt(15),
-                random.nextInt(10),
-                random.nextInt(20),
-                List.of("item1", "item2", "item3", "item4", "item5", "item6")
-            ));
-        }
-        return matches;
-    }
-
-    @Override
-    public Optional<RankedStats> fetchRankedStats(String summonerId, String region) {
-        return Optional.of(new RankedStats(
-            "GOLD",
-            "IV",
-            75,
-            120,
-            110
-        ));
-    }
 
     private ChampionStats generateStats(String championId) {
         ChampionStats stats = new ChampionStats();

@@ -4,11 +4,6 @@ import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/**
- * Simple sliding window rate limiter tuned for Riot API constraints.
- * Uses two independent windows (e.g., 20 req / 1s and 100 req / 2min) and
- * blocks until sending another request stays within both windows.
- */
 public class RiotRateLimiter {
     private final int shortLimit;
     private final long shortWindowNanos;
@@ -24,9 +19,6 @@ public class RiotRateLimiter {
         this.longWindowNanos = longWindow == null ? 0 : longWindow.toNanos();
     }
 
-    /**
-     * Blocks until another request fits inside both configured windows.
-     */
     public void acquire() throws InterruptedException {
         while (true) {
             long sleepMillis;
@@ -50,7 +42,6 @@ public class RiotRateLimiter {
                 if (!longOk && !longWindow.isEmpty()) {
                     waitNanos = Math.max(waitNanos, longWindowNanos - (now - longWindow.peekFirst()));
                 }
-                // Convert to millis with ceiling (never sleep 0)
                 sleepMillis = Math.max(1L, (waitNanos + 999_999L) / 1_000_000L);
             }
             Thread.sleep(sleepMillis);

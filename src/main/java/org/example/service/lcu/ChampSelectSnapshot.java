@@ -2,9 +2,6 @@ package org.example.service.lcu;
 
 import java.util.List;
 
-/**
- * Immutable snapshot of the League client's current champ select state that can be mirrored into the UI.
- */
 public record ChampSelectSnapshot(
         boolean inChampSelect,
         Side firstPickSide,

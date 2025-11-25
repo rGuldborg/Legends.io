@@ -38,7 +38,6 @@ public final class ChampionNames {
                 }
             }
         } catch (Exception ex) {
-            System.err.println("[ChampionNames] Failed to load champion list: " + ex.getMessage());
         }
         registerManual("Za'ahen", "Za'ahen", display, normalized, "Zaahen", "Zaheen");
         DISPLAY_BY_CANONICAL = Collections.unmodifiableMap(display);

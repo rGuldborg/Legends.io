@@ -107,12 +107,7 @@
     <center>
         <VBox styleClass="content-area" spacing="0">
             <HBox styleClass="tab-bar" alignment="CENTER_LEFT" spacing="4">
-                <Label fx:id="profileTab"
-                       text="Profile"
-                       focusTraversable="true"
-                       onMouseClicked="#onProfileTabClicked"
-                       onKeyPressed="#onProfileTabKey"
-                       styleClass="tab-chip"/>
+
                 <Label fx:id="gameTab"
                        text="Game"
                        focusTraversable="true"

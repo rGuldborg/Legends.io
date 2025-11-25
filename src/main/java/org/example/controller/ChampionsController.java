@@ -46,7 +46,7 @@ import java.util.stream.Stream;
 
 public class ChampionsController {
     private static final int MIN_MATCHUP_GAMES = 5;
-    private static final double ROLE_SHARE_THRESHOLD = 0.02; // 2% of a champion's games
+    private static final double ROLE_SHARE_THRESHOLD = 0.02;
     private static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("+0.0;-0.0");
 
     @FXML private TilePane championsGrid;
@@ -236,7 +236,6 @@ public class ChampionsController {
     private void loadChampionInfosFromAssets() {
         var directoryUrl = getClass().getResource("/org/example/images/champSquare");
         if (directoryUrl == null) {
-            System.err.println("champSquare directory not found on classpath.");
             return;
         }
         try {
@@ -254,8 +253,6 @@ public class ChampionsController {
                         });
             }
         } catch (URISyntaxException | IOException e) {
-            System.err.println("Failed to read champion assets:");
-            e.printStackTrace();
         }
     }
 

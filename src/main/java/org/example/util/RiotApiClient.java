@@ -8,9 +8,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Optional;
 
-/**
- * Wraps HttpClient with Riot headers, throttling, and simple retry logic.
- */
 public class RiotApiClient {
     private final HttpClient httpClient;
     private final String apiKey;

@@ -12,9 +12,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Fetches recent matches for a set of seed summoners in a given queue, deduplicated by match id.
- */
 public class MatchFetcher {
     private static final List<String> HIGH_COMPETITIVE_TIERS = List.of(
             "CHALLENGER",
@@ -37,7 +34,6 @@ public class MatchFetcher {
         List<String> puuids = fetchTierPuuids(queue, seeds);
         long startNanos = System.nanoTime();
         if (puuids.isEmpty()) {
-            System.err.println("[MatchFetcher] No puuids found for queue " + queue);
             return new ArrayList<>();
         }
 
@@ -55,17 +51,15 @@ public class MatchFetcher {
                 Thread.currentThread().interrupt();
                 throw ie;
             } catch (Exception e) {
-                System.err.println("[MatchFetcher] Failed to fetch matches for puuid: " + e.getMessage());
             }
         }
-        System.out.println("[MatchFetcher] Collected " + matchIds.size() + " match ids (unique) from " + puuids.size() + " seeds");
         return new ArrayList<>(matchIds);
     }
 
     private List<String> fetchTierPuuids(Queue queue, int seeds) throws InterruptedException {
         List<String> puuids = new ArrayList<>();
         try {
-            String host = hostForPlatform(platform); // e.g., euw1.api.riotgames.com
+            String host = hostForPlatform(platform);
 
             for (String tier : HIGH_COMPETITIVE_TIERS) {
                 for (int page = 1; page <= 5 && puuids.size() < seeds; page++) {
@@ -73,7 +67,6 @@ public class MatchFetcher {
                     String body = apiClient.get(url);
                     JsonNode root = mapper.readTree(body);
                     if (root == null || !root.isArray()) {
-                        System.err.println("[MatchFetcher] Unexpected response for " + tier + " page " + page + ": " + truncate(body, 200));
                         break;
                     }
                     for (JsonNode entry : root) {
@@ -91,20 +84,16 @@ public class MatchFetcher {
             Thread.currentThread().interrupt();
             throw ie;
         } catch (Exception e) {
-            System.err.println("[MatchFetcher] Failed to fetch challenger names: " + e.getMessage());
         }
         if (puuids.isEmpty()) {
-            System.err.println("[MatchFetcher] No puuids parsed; response may be empty or rate-limited.");
             try {
                 String host = hostForPlatform(platform);
                 String url = "https://" + host + "/lol/league-exp/v4/entries/RANKED_SOLO_5x5/EMERALD/I?page=1";
                 String body = apiClient.get(url);
-                System.err.println("[MatchFetcher] Debug body: " + truncate(body, 500));
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw ie;
             } catch (Exception debugEx) {
-                System.err.println("[MatchFetcher] Debug fetch failed: " + debugEx.getMessage());
             }
         }
         return puuids;
@@ -142,7 +131,7 @@ public class MatchFetcher {
     }
 
     private List<String> fetchMatchIdsForPuuid(String puuid, Queue queue, int count) throws IOException, InterruptedException {
-        int fetchCount = Math.min(Math.max(count, 1), 100); // Riot allows 1..100
+        int fetchCount = Math.min(Math.max(count, 1), 100);
         String regionHost = routingHostForPlatform(platform);
         String url = "https://" + regionHost + "/lol/match/v5/matches/by-puuid/" + puuid + "/ids?queue=" + queue.getId() + "&count=" + fetchCount;
         String body = apiClient.get(url);
@@ -157,19 +146,9 @@ public class MatchFetcher {
     }
 
     public static String hostForPlatform(Platform p) {
-        String tag = p.getTag().toUpperCase(); // e.g., EUW, NA, KR, JP
+        String tag = p.getTag().toUpperCase();
         return switch (tag) {
-            case "EUW" -> "euw1.api.riotgames.com";
-            case "EUNE" -> "eun1.api.riotgames.com";
-            case "NA" -> "na1.api.riotgames.com";
-            case "KR" -> "kr.api.riotgames.com";
-            case "JP" -> "jp1.api.riotgames.com";
-            case "BR" -> "br1.api.riotgames.com";
-            case "LA1" -> "la1.api.riotgames.com";
-            case "LA2" -> "la2.api.riotgames.com";
-            case "OC" -> "oc1.api.riotgames.com";
-            case "RU" -> "ru.api.riotgames.com";
-            case "TR" -> "tr1.api.riotgames.com";
+            case "EUW", "EUNE", "NA", "KR", "JP", "BR", "LA1", "LA2", "OC", "RU", "TR" -> tag.toLowerCase() + ".api.riotgames.com";
             default -> tag.toLowerCase() + ".api.riotgames.com";
         };
     }

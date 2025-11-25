@@ -19,19 +19,16 @@ public class WebpConverter {
                     .forEach(webps::add);
         }
         if (webps.isEmpty()) {
-            System.out.println("No .webp files discovered under " + root);
             return;
         }
         for (Path source : webps) {
             BufferedImage image = ImageIO.read(source.toFile());
             if (image == null) {
-                System.err.println("Skipping unreadable file: " + source);
                 continue;
             }
             Path target = replaceExtension(source, ".png");
             ImageIO.write(image, "png", target.toFile());
             Files.deleteIfExists(source);
-            System.out.println("Converted " + source + " -> " + target);
         }
     }
 
