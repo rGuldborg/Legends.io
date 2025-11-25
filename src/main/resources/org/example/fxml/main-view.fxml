@@ -19,7 +19,10 @@
                         onMousePressed="#onHeaderPressed"
                         onMouseDragged="#onHeaderDragged">
                 <left>
-                    <ImageView fitHeight="25" preserveRatio="true">
+                    <ImageView fitHeight="75" preserveRatio="true">
+                        <BorderPane.margin>
+                            <Insets top="5.0" left="5.0"/>
+                        </BorderPane.margin>
                         <image>
                             <Image url="@/org/example/images/logo/logot.png"/>
                         </image>
