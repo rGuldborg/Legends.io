@@ -40,7 +40,7 @@ public final class ChampionNames {
         } catch (Exception ex) {
             System.err.println("[ChampionNames] Failed to load champion list: " + ex.getMessage());
         }
-        registerManual("Zaahen", "Za'ahen", display, normalized, "Zaheen");
+        registerManual("Za'ahen", "Za'ahen", display, normalized, "Zaahen", "Zaheen");
         DISPLAY_BY_CANONICAL = Collections.unmodifiableMap(display);
         CANONICAL_LIST = List.copyOf(display.keySet());
         CANONICAL_BY_NORMALIZED = Collections.unmodifiableMap(normalized);

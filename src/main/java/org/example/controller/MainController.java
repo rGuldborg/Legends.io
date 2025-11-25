@@ -12,10 +12,19 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.ThemeManager;
+import org.example.service.lcu.ChampSelectSnapshot;
+import org.example.service.lcu.LeagueClientChampSelectWatcher;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+
 
 import java.io.File;
+import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -32,20 +41,31 @@ public class MainController {
     @FXML private Button minimizeButton;
     @FXML private Button maximizeButton;
     @FXML private Button closeButton;
+    @FXML private Label profileTab;
     @FXML private Label gameTab;
     @FXML private Label championsTab;
+    @FXML private Label helpTab;
     @FXML private BorderPane windowHeader;
     @FXML private StackPane contentArea;
     @FXML private Node moonIcon;
     @FXML private Node sunIcon;
     @FXML private Label footerLastUpdatedLabel;
+    @FXML private Label patchLabel;
+    @FXML private Label lcuStatusLabel;
+    @FXML private Circle lcuStatusIndicator;
+
+    private final LeagueClientChampSelectWatcher clientWatcher = new LeagueClientChampSelectWatcher();
+    private final SimpleObjectProperty<ChampSelectSnapshot> lcuSnapshot = new SimpleObjectProperty<>();
 
     private boolean darkMode = true; // start in DARK MODE
     private double xOffset;
     private double yOffset;
+    private GameController gameController;
     private ChampionsController championsController;
+    private Node profileView;
     private Node gameView;
     private Node championsView;
+    private Node helpView;
 
     @FXML
     public void initialize() {
@@ -66,11 +86,60 @@ public class MainController {
             }
         });
 
-        // Load the primary GAME view by default so placeholders/map are visible immediately
-        showGameView();
-        setActiveTab(gameTab);
+        // Load the primary PROFILE view by default
+        showProfileView();
+        setActiveTab(profileTab);
         ensureChampionsViewInitialized();
         updateSnapshotTimestamp();
+        updatePatchVersion();
+        startLcuWatcher();
+    }
+
+    public ReadOnlyObjectProperty<ChampSelectSnapshot> lcuSnapshotProperty() {
+        return lcuSnapshot;
+    }
+
+    public void stop() {
+        clientWatcher.stop();
+    }
+
+    private void startLcuWatcher() {
+        lcuSnapshot.addListener((obs, oldV, newV) -> Platform.runLater(() -> updateLcuStatusIndicator(newV)));
+        clientWatcher.addListener(lcuSnapshot::set);
+        clientWatcher.start();
+    }
+
+    private void updateLcuStatusIndicator(ChampSelectSnapshot snapshot) {
+        if (lcuStatusIndicator == null || lcuStatusLabel == null) {
+            return;
+        }
+        lcuStatusIndicator.getStyleClass().removeAll(
+                "lcu-status-indicator-connected",
+                "lcu-status-indicator-disconnected",
+                "lcu-status-indicator-idle",
+                "lcu-status-indicator-unknown"
+        );
+
+        String styleClass;
+        String statusText;
+        if (snapshot == null) {
+            styleClass = "lcu-status-indicator-unknown";
+            statusText = "Unknown";
+        } else if (snapshot.inChampSelect()) {
+            styleClass = "lcu-status-indicator-connected";
+            statusText = "Connected";
+        } else if ("Looking for League client...".equals(snapshot.statusText())) {
+            styleClass = "lcu-status-indicator-disconnected";
+            statusText = "Disconnected";
+        } else if ("Client idle (no champ select).".equals(snapshot.statusText())) {
+            styleClass = "lcu-status-indicator-idle";
+            statusText = "Client Idle (In-game not detected)";
+        } else {
+            styleClass = "lcu-status-indicator-unknown";
+            statusText = "Unknown";
+        }
+        lcuStatusIndicator.getStyleClass().add(styleClass);
+        lcuStatusLabel.setText(statusText);
     }
 
     @FXML
@@ -94,6 +163,12 @@ public class MainController {
     }
 
     @FXML
+    private void onProfileNav() {
+        setActiveTab(profileTab);
+        showProfileView();
+    }
+
+    @FXML
     private void onGameNav() {
         setActiveTab(gameTab);
         showGameView();
@@ -106,6 +181,17 @@ public class MainController {
     }
 
     @FXML
+    private void onHelpNav() {
+        setActiveTab(helpTab);
+        showHelpView();
+    }
+
+    @FXML
+    private void onProfileTabClicked(MouseEvent event) {
+        onProfileNav();
+    }
+
+    @FXML
     private void onGameTabClicked(MouseEvent event) {
         onGameNav();
     }
@@ -113,6 +199,19 @@ public class MainController {
     @FXML
     private void onChampionsTabClicked(MouseEvent event) {
         onChampionsNav();
+    }
+
+    @FXML
+    private void onHelpTabClicked(MouseEvent event) {
+        onHelpNav();
+    }
+
+    @FXML
+    private void onProfileTabKey(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+            onProfileNav();
+            event.consume();
+        }
     }
 
     @FXML
@@ -127,6 +226,14 @@ public class MainController {
     private void onChampionsTabKey(KeyEvent event) {
         if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
             onChampionsNav();
+            event.consume();
+        }
+    }
+
+    @FXML
+    private void onHelpTabKey(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+            onHelpNav();
             event.consume();
         }
     }
@@ -173,6 +280,26 @@ public class MainController {
         }
     }
 
+    private void showProfileView() {
+        Node view = getProfileView();
+        if (view != null) {
+            contentArea.getChildren().setAll(view);
+        }
+    }
+
+    private Node getProfileView() {
+        if (profileView == null) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/fxml/profile-view.fxml"));
+                profileView = loader.load();
+            } catch (Exception e) {
+                System.err.println("Could not load profile view.");
+                e.printStackTrace();
+            }
+        }
+        return profileView;
+    }
+
     private void showGameView() {
         Node view = getGameView();
         if (view != null) {
@@ -185,6 +312,8 @@ public class MainController {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/fxml/game-view.fxml"));
                 gameView = loader.load();
+                gameController = loader.getController();
+                gameController.bindLcu(lcuSnapshot);
             } catch (Exception e) {
                 System.err.println("Could not load game view.");
                 e.printStackTrace();
@@ -216,6 +345,26 @@ public class MainController {
             System.err.println("Could not load champions view.");
             e.printStackTrace();
         }
+    }
+
+    private void showHelpView() {
+        Node view = getHelpView();
+        if (view != null) {
+            contentArea.getChildren().setAll(view);
+        }
+    }
+
+    private Node getHelpView() {
+        if (helpView == null) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/fxml/help-view.fxml"));
+                helpView = loader.load();
+            } catch (Exception e) {
+                System.err.println("Could not load help view.");
+                e.printStackTrace();
+            }
+        }
+        return helpView;
     }
 
     private void showChampionViewFromSearch() {
@@ -263,13 +412,32 @@ public class MainController {
     }
 
     private void setActiveTab(Label activeTab) {
-        Label[] tabs = {gameTab, championsTab};
+        Label[] tabs = {profileTab, gameTab, championsTab, helpTab};
         for (Label tab : tabs) {
             if (tab == null) continue;
             tab.getStyleClass().remove(ACTIVE_TAB_CLASS);
         }
         if (activeTab != null && !activeTab.getStyleClass().contains(ACTIVE_TAB_CLASS)) {
             activeTab.getStyleClass().add(ACTIVE_TAB_CLASS);
+        }
+    }
+
+    private void updatePatchVersion() {
+        if (patchLabel == null) {
+            return;
+        }
+        try (InputStream is = getClass().getResourceAsStream("/org/example/data/champion-map.json")) {
+            if (is == null) {
+                patchLabel.setText("Patch: Unknown");
+                return;
+            }
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode rootNode = mapper.readTree(is);
+            String version = rootNode.get("version").asText();
+            patchLabel.setText("Patch: " + version);
+        } catch (Exception e) {
+            e.printStackTrace();
+            patchLabel.setText("Patch: Error");
         }
     }
 }

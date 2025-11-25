@@ -821,3 +821,22 @@ Button.header-icon-button {
     -fx-font-weight: 600;
     -fx-font-size: 13px;
 }
+
+
+.lcu-status-indicator-disconnected { -fx-fill: #db3e3e; }
+.lcu-status-indicator-connected { -fx-fill: #3edb59; }
+.lcu-status-indicator-idle { -fx-fill: #d1db3e; }
+.lcu-status-indicator-unknown { -fx-fill: #888888; }
+
+.ally-stat-bar {
+    -fx-fill: #3a75c4;
+}
+
+.enemy-stat-bar {
+    -fx-fill: #c4403a;
+}
+
+.stat-bar-label {
+    -fx-font-size: 8;
+    -fx-text-fill: #e5f0ff; /* Light color for dark theme */
+}

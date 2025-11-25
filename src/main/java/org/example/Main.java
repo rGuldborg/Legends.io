@@ -13,6 +13,8 @@ import org.example.util.WindowResizer;
 
 public class Main extends Application {
 
+    private org.example.controller.MainController mainController;
+
     @Override
     public void start(Stage stage) throws Exception {
         System.out.println("Launching JavaFX...");
@@ -21,6 +23,7 @@ public class Main extends Application {
 
         System.out.println("Loading FXML: /org/example/fxml/main-view.fxml");
         Parent mainContent = fxmlLoader.load();
+        mainController = fxmlLoader.getController();
 
         StackPane contentWrapper = new StackPane(mainContent);
         contentWrapper.getStyleClass().add("app-window");
@@ -54,6 +57,14 @@ public class Main extends Application {
         stage.show();
 
         System.out.println("=== App Started Successfully ===");
+    }
+
+    @Override
+    public void stop() {
+        System.out.println("Stopping application...");
+        if (mainController != null) {
+            mainController.stop();
+        }
     }
 
     public static void main(String[] args) {

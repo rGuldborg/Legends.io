@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controller.ProfileController"
+      alignment="TOP_CENTER" spacing="20" styleClass="profile-view">
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <ComboBox fx:id="regionComboBox" promptText="Region"/>
+        <TextField fx:id="summonerNameField" promptText="Summoner Name"/>
+        <TextField fx:id="hashtagField" promptText="Hashtag"/>
+        <Button fx:id="lookupButton" text="Look Up" onAction="#onLookup"/>
+    </HBox>
+
+    <HBox spacing="20" alignment="CENTER">
+        <ImageView fx:id="summonerIconView" fitHeight="100" fitWidth="100"/>
+        <VBox spacing="5">
+            <Label fx:id="summonerNameLabel" style="-fx-font-size: 24;"/>
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <ImageView fx:id="rankIconView" fitHeight="50" fitWidth="50"/>
+                <Label fx:id="rankLabel"/>
+            </HBox>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="updateButton" text="Update"/>
+    </HBox>
+
+    <ListView fx:id="matchesListView"/>
+
+    <LineChart fx:id="lpChart">
+        <xAxis>
+            <CategoryAxis label="Date"/>
+        </xAxis>
+        <yAxis>
+            <NumberAxis label="LP"/>
+        </yAxis>
+    </LineChart>
+</VBox>

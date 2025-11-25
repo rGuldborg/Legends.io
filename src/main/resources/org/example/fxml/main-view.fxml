@@ -5,6 +5,7 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.shape.SVGPath?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
@@ -106,6 +107,12 @@
     <center>
         <VBox styleClass="content-area" spacing="0">
             <HBox styleClass="tab-bar" alignment="CENTER_LEFT" spacing="4">
+                <Label fx:id="profileTab"
+                       text="Profile"
+                       focusTraversable="true"
+                       onMouseClicked="#onProfileTabClicked"
+                       onKeyPressed="#onProfileTabKey"
+                       styleClass="tab-chip"/>
                 <Label fx:id="gameTab"
                        text="Game"
                        focusTraversable="true"
@@ -117,6 +124,13 @@
                        focusTraversable="true"
                        onMouseClicked="#onChampionsTabClicked"
                        onKeyPressed="#onChampionsTabKey"
+                       styleClass="tab-chip"/>
+                <Pane HBox.hgrow="ALWAYS"/>
+                <Label fx:id="helpTab"
+                       text="Help"
+                       focusTraversable="true"
+                       onMouseClicked="#onHelpTabClicked"
+                       onKeyPressed="#onHelpTabKey"
                        styleClass="tab-chip"/>
             </HBox>
             <StackPane fx:id="contentArea" styleClass="view-container" VBox.vgrow="ALWAYS">
@@ -132,10 +146,20 @@
             <padding>
                 <Insets top="10" right="12" bottom="10" left="12"/>
             </padding>
-            <Label text="About" styleClass="footer-text"/>
-            <Pane HBox.hgrow="ALWAYS"/>
             <Label fx:id="footerLastUpdatedLabel" text="Last updated: --" styleClass="footer-text"/>
+            <Label text="|" styleClass="footer-text"/>
+            <Label fx:id="patchLabel" text="Patch: --" styleClass="footer-text"/>
+            <Label text="|" styleClass="footer-text"/>
             <Label text="v1.0.0" styleClass="footer-text"/>
+            <Pane HBox.hgrow="ALWAYS"/>
+            <Label text="League Status:" styleClass="footer-text"/>
+            <Label fx:id="lcuStatusLabel" text="Unknown" styleClass="footer-text"/>
+            <StackPane>
+                <padding>
+                    <Insets left="4" right="4"/>
+                </padding>
+                <Circle fx:id="lcuStatusIndicator" radius="6" styleClass="lcu-status-indicator-unknown"/>
+            </StackPane>
         </HBox>
     </bottom>
 

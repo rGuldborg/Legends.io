@@ -29,6 +29,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 import org.example.ThemeManager;
@@ -38,6 +39,7 @@ import org.example.model.RecommendationContext;
 import org.example.model.Role;
 import org.example.model.SlotSelection;
 import org.example.model.Tier;
+import org.example.model.ChampionStats;
 import org.example.service.MockStatsService;
 import org.example.service.RiotStatsService;
 import org.example.service.StatsService;
@@ -46,10 +48,13 @@ import org.example.service.lcu.LeagueClientChampSelectWatcher;
 import org.example.util.ChampionIconResolver;
 import org.example.util.ChampionNames;
 import org.example.util.RoleFilter;
+import javafx.beans.property.ReadOnlyObjectProperty;
+
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +90,20 @@ public class GameController {
     @FXML private VBox firstPickPrompt;
     @FXML private Button finishBansButton;
 
+    // Ally pick bars
+    @FXML private Rectangle allyPick1OpBar, allyPick1SynBar, allyPick1CoBar;
+    @FXML private Rectangle allyPick2OpBar, allyPick2SynBar, allyPick2CoBar;
+    @FXML private Rectangle allyPick3OpBar, allyPick3SynBar, allyPick3CoBar;
+    @FXML private Rectangle allyPick4OpBar, allyPick4SynBar, allyPick4CoBar;
+    @FXML private Rectangle allyPick5OpBar, allyPick5SynBar, allyPick5CoBar;
+
+    // Enemy pick bars
+    @FXML private Rectangle enemyPick1OpBar, enemyPick1SynBar, enemyPick1CoBar;
+    @FXML private Rectangle enemyPick2OpBar, enemyPick2SynBar, enemyPick2CoBar;
+    @FXML private Rectangle enemyPick3OpBar, enemyPick3SynBar, enemyPick3CoBar;
+    @FXML private Rectangle enemyPick4OpBar, enemyPick4SynBar, enemyPick4CoBar;
+    @FXML private Rectangle enemyPick5OpBar, enemyPick5SynBar, enemyPick5CoBar;
+
     private final List<String> allyBans = createSlotList();
     private final List<String> enemyBans = createSlotList();
     private final List<String> allyPicks = createSlotList();
@@ -93,6 +112,7 @@ public class GameController {
     private final List<Role> enemyPickRoles = new ArrayList<>(List.of(Role.TOP, Role.JUNGLE, Role.MID, Role.BOTTOM, Role.SUPPORT));
     private final List<Slot> slots = new ArrayList<>();
     private final List<Slot> banSlots = new ArrayList<>();
+    private final Map<Slot, StatBars> statBarsMap = new HashMap<>();
     private final DropShadow activeEffect = new DropShadow(18, Color.web("#73c0ff"));
     private final Map<ThemeManager.Theme, Map<Role, Image>> roleIconCache = new EnumMap<>(ThemeManager.Theme.class);
     private final Map<String, Image> tierBadgeCache = new java.util.HashMap<>();
@@ -102,17 +122,16 @@ public class GameController {
     private int pickIndex;
     private final List<Slot> unlockedSlots = new ArrayList<>();
     private boolean liveMirrorActive;
-    private boolean watcherAttached;
 
     private StatsService statsService;
+    private Map<String, ChampionStats> allChampionStatsMap;
     private ObservableList<ChampionSummary> tableData;
     private FilteredList<ChampionSummary> filteredTableData;
     private RoleFilter activeRoleFilter = RoleFilter.FLEX;
     private Slot activeSlot;
     private final Consumer<ThemeManager.Theme> themeListener = theme -> Platform.runLater(this::refreshRoleIcons);
-    private final LeagueClientChampSelectWatcher clientWatcher = new LeagueClientChampSelectWatcher();
-    private final Consumer<ChampSelectSnapshot> clientSnapshotConsumer =
-            snapshot -> Platform.runLater(() -> handleClientSnapshot(snapshot));
+
+    private record StatBars(Rectangle opBar, Rectangle synBar, Rectangle coBar) {}
 
     private enum SlotType {
         ALLY_BAN(true), ENEMY_BAN(false), ALLY_PICK(true), ENEMY_PICK(false);
@@ -172,6 +191,7 @@ public class GameController {
         System.out.println("[GameController] Loaded game-view!");
         ThemeManager.addThemeChangeListener(themeListener);
         statsService = initStatsService();
+        allChampionStatsMap = statsService.allChampionStats();
         configureTable();
         configureSlots();
         configureFirstPickPrompt();
@@ -181,18 +201,6 @@ public class GameController {
         recommendedTable.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 assignSelectedChampion();
-            }
-        });
-        recommendedTable.sceneProperty().addListener((obs, oldScene, newScene) -> {
-            if (newScene != null) {
-                attachClientWatcher();
-            } else {
-                detachClientWatcher();
-            }
-        });
-        Platform.runLater(() -> {
-            if (recommendedTable.getScene() != null) {
-                attachClientWatcher();
             }
         });
     }
@@ -422,6 +430,18 @@ public class GameController {
         slots.add(new Slot(SlotType.ENEMY_PICK, 3, enemyPick4, enemyRoleRow4));
         slots.add(new Slot(SlotType.ENEMY_PICK, 4, enemyPick5, enemyRoleRow5));
 
+        statBarsMap.put(slots.get(10), new StatBars(allyPick1OpBar, allyPick1SynBar, allyPick1CoBar));
+        statBarsMap.put(slots.get(11), new StatBars(allyPick2OpBar, allyPick2SynBar, allyPick2CoBar));
+        statBarsMap.put(slots.get(12), new StatBars(allyPick3OpBar, allyPick3SynBar, allyPick3CoBar));
+        statBarsMap.put(slots.get(13), new StatBars(allyPick4OpBar, allyPick4SynBar, allyPick4CoBar));
+        statBarsMap.put(slots.get(14), new StatBars(allyPick5OpBar, allyPick5SynBar, allyPick5CoBar));
+
+        statBarsMap.put(slots.get(15), new StatBars(enemyPick1OpBar, enemyPick1SynBar, enemyPick1CoBar));
+        statBarsMap.put(slots.get(16), new StatBars(enemyPick2OpBar, enemyPick2SynBar, enemyPick2CoBar));
+        statBarsMap.put(slots.get(17), new StatBars(enemyPick3OpBar, enemyPick3SynBar, enemyPick3CoBar));
+        statBarsMap.put(slots.get(18), new StatBars(enemyPick4OpBar, enemyPick4SynBar, enemyPick4CoBar));
+        statBarsMap.put(slots.get(19), new StatBars(enemyPick5OpBar, enemyPick5SynBar, enemyPick5CoBar));
+
         slots.forEach(slot -> {
             if (slot.pickView != null) {
                 slot.pickView.setCursor(Cursor.HAND);
@@ -612,31 +632,18 @@ public class GameController {
             if (slot.pickView != null) {
                 slot.pickView.setEffect(null);
             }
+            updateStatBars(slot, null);
         });
         activeSlot = null;
         unlockedSlots.clear();
     }
 
-    private void attachClientWatcher() {
-        if (watcherAttached) {
-            return;
-        }
-        clientWatcher.addListener(clientSnapshotConsumer);
-        clientWatcher.start();
-        watcherAttached = true;
-    }
-
-    private void detachClientWatcher() {
-        if (!watcherAttached) {
-            return;
-        }
-        clientWatcher.removeListener(clientSnapshotConsumer);
-        clientWatcher.stop();
-        watcherAttached = false;
-        if (liveMirrorActive) {
-            liveMirrorActive = false;
-            resetBoardToInitial();
-        }
+    public void bindLcu(ReadOnlyObjectProperty<ChampSelectSnapshot> lcuSnapshot) {
+        lcuSnapshot.addListener((obs, oldV, newV) -> {
+            if (newV != null) {
+                Platform.runLater(() -> handleClientSnapshot(newV));
+            }
+        });
     }
 
     private void handleClientSnapshot(ChampSelectSnapshot snapshot) {
@@ -646,23 +653,53 @@ public class GameController {
                 draftPhase = DraftPhase.LIVE_MIRROR;
                 clearAllSlotsAndEffects();
                 hideFirstPickPrompt();
+                showChampionFilter(true);
                 updateFinishBansState();
             }
+
+            List<String> oldAllyPicks = new ArrayList<>(allyPicks);
+            List<String> oldEnemyPicks = new ArrayList<>(enemyPicks);
+
             firstPickSide = convertSnapshotSide(snapshot.firstPickSide());
             copySnapshotList(snapshot.allyBans(), allyBans);
             copySnapshotList(snapshot.enemyBans(), enemyBans);
             copySnapshotList(snapshot.allyPicks(), allyPicks);
             copySnapshotList(snapshot.enemyPicks(), enemyPicks);
+
+            findAndApplyRoles(allyPicks, oldAllyPicks, allyPickRoles);
+            findAndApplyRoles(enemyPicks, oldEnemyPicks, enemyPickRoles);
+
             slots.forEach(slot -> updateSlotIcon(slot, valueForSlot(slot)));
             slots.forEach(this::updateRoleHighlight);
             setActiveSlot(null);
             updateStatus(snapshot.statusText());
+            refreshRecommendations();
             return;
         }
         if (liveMirrorActive) {
             liveMirrorActive = false;
             resetBoardToInitial();
             updateStatus(snapshot.statusText());
+        }
+    }
+
+    private void findAndApplyRoles(List<String> newPicks, List<String> oldPicks, List<Role> rolesToUpdate) {
+        if (allChampionStatsMap == null || allChampionStatsMap.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < newPicks.size(); i++) {
+            String newPick = newPicks.get(i);
+            String oldPick = oldPicks.get(i);
+
+            if (newPick != null && !newPick.equals(oldPick)) {
+                ChampionStats stats = allChampionStatsMap.get(newPick);
+                if (stats != null) {
+                    Role primaryRole = stats.primaryRole();
+                    if (primaryRole != null && primaryRole != Role.UNKNOWN) {
+                        rolesToUpdate.set(i, primaryRole);
+                    }
+                }
+            }
         }
     }
 
@@ -1180,6 +1217,67 @@ public class GameController {
                 ? placeholderForSlot(slot)
                 : ChampionIconResolver.load(champion);
         slot.pickView.setImage(image);
+        updateStatBars(slot, champion);
+    }
+
+    private void updateStatBars(Slot slot, String championName) {
+        StatBars bars = statBarsMap.get(slot);
+        if (bars == null) {
+            return;
+        }
+
+        if (championName == null || championName.isBlank()) {
+            bars.opBar.setWidth(2);
+            bars.synBar.setWidth(2);
+            bars.coBar.setWidth(2);
+            return;
+        }
+        
+        // The context for fetching a single champion's summary might be simpler,
+        // but it still needs to reflect the current state of the draft
+        // to correctly calculate synergy and counter tiers.
+        RecommendationContext context = new RecommendationContext(
+                buildSelections(allyPicks, allyPickRoles),
+                buildSelections(enemyPicks, enemyPickRoles), // Use enemyPickRoles for enemy context.
+                mergeLists(allyBans, enemyBans),
+                // The target role might be unknown for a single champion summary.
+                // We are getting the summary for the champion in `championName`,
+                // not for a recommendation into `slot`. So the target role for
+                // the summary is not necessarily the role of `slot`.
+                Role.UNKNOWN, // Or derive based on how the champion is primarily played.
+                slot.type.isAlly(), // Perspective of the slot being updated
+                1 // Limit is 1 since we only need one champion's summary
+        );
+
+        statsService.fetchChampionSummary(championName, context).ifPresentOrElse(summary -> {
+            bars.opBar.setWidth(tierToWidth(summary.opTier()));
+            bars.synBar.setWidth(tierToWidth(summary.synTier()));
+            bars.coBar.setWidth(tierToWidth(summary.coTier()));
+        }, () -> {
+            // If summary not found, reset bars
+            bars.opBar.setWidth(2);
+            bars.synBar.setWidth(2);
+            bars.coBar.setWidth(2);
+        });
+    }
+
+    private double tierToWidth(Tier tier) {
+        if (tier == null) return 2;
+        return switch (tier) {
+            case S_PLUS -> 40;
+            case S -> 37;
+            case S_MINUS -> 34;
+            case A_PLUS -> 31;
+            case A -> 28;
+            case A_MINUS -> 25;
+            case B_PLUS -> 22;
+            case B -> 19;
+            case B_MINUS -> 16;
+            case C_PLUS -> 13;
+            case C -> 10;
+            case C_MINUS -> 7;
+            default -> 2;
+        };
     }
 
     private Image placeholderForSlot(Slot slot) {

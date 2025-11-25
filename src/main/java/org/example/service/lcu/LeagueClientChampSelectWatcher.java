@@ -2,301 +2,818 @@ package org.example.service.lcu;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-/**
- * Periodically polls the local League Client Update (LCU) API to mirror champ select picks/bans.
- */
 public final class LeagueClientChampSelectWatcher {
+
     private static final int SLOT_COUNT = 5;
+
+    private static final String SUBSCRIBE_ALL_EVENTS = "[5, \"OnJsonApiEvent\"]";
+
+
+
     private final ObjectMapper mapper = new ObjectMapper();
+
     private final List<Consumer<ChampSelectSnapshot>> listeners = new CopyOnWriteArrayList<>();
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread thread = new Thread(r, "lcu-champ-select");
-        thread.setDaemon(true);
-        return thread;
-    });
-    private final AtomicBoolean running = new AtomicBoolean();
-    private volatile ScheduledFuture<?> pollHandle;
-    private volatile ChampSelectSnapshot lastSnapshot = ChampSelectSnapshot.waiting("Looking for League client...");
-    private volatile LockfileInfo cachedInfo;
-    private volatile HttpClient httpClient;
-    private volatile Path lockfilePath;
+
+    private final AtomicBoolean running = new AtomicBoolean(false);
+
+    private final ScheduledExecutorService reconnectExecutor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "lcu-reconnect-thread"));
+
+
+
+    private LcuWebSocketClient wsClient;
+
+
 
     public void addListener(Consumer<ChampSelectSnapshot> listener) {
+
         listeners.add(listener);
+
     }
+
+
 
     public void removeListener(Consumer<ChampSelectSnapshot> listener) {
+
         listeners.remove(listener);
+
     }
+
+
 
     public void start() {
-        if (running.compareAndSet(false, true)) {
-            pollHandle = executor.scheduleWithFixedDelay(this::poll, 0, 2, TimeUnit.SECONDS);
+
+        if (!running.compareAndSet(false, true)) {
+
+            return;
+
         }
+
+        System.out.println("[LCU Watcher] Starting...");
+
+        connect();
+
     }
+
+
 
     public void stop() {
-        running.set(false);
-        Optional.ofNullable(pollHandle).ifPresent(handle -> {
-            handle.cancel(true);
-            pollHandle = null;
-        });
-    }
 
-    private void poll() {
-        if (!running.get()) {
+        if (!running.compareAndSet(true, false)) {
+
             return;
+
         }
-        ChampSelectSnapshot snapshot = fetchSnapshot();
-        if (!snapshot.equals(lastSnapshot)) {
-            lastSnapshot = snapshot;
-            listeners.forEach(listener -> {
-                try {
-                    listener.accept(snapshot);
-                } catch (Exception ex) {
-                    System.err.println("[LCU Watcher] Listener error: " + ex.getMessage());
-                }
-            });
+
+        System.out.println("[LCU Watcher] Stopping...");
+
+        if (wsClient != null) {
+
+            wsClient.close();
+
         }
+
+        reconnectExecutor.shutdownNow();
+
     }
 
-    private ChampSelectSnapshot fetchSnapshot() {
+
+
+    private void connect() {
+
+        if (!running.get()) return;
+
+
+
         try {
-            Path path = locateLockfile().orElse(null);
-            if (path == null) {
-                cachedInfo = null;
-                httpClient = null;
-                lockfilePath = null;
-                return ChampSelectSnapshot.waiting("Looking for League client...");
+
+            Path lockfilePath = locateLockfile().orElse(null);
+
+            if (lockfilePath == null) {
+
+                broadcast(ChampSelectSnapshot.waiting("Looking for League client..."));
+
+                scheduleReconnect();
+
+                return;
+
             }
-            lockfilePath = path;
-            LockfileInfo info = readLockfile(path);
-            HttpClient client = ensureClient(info);
-            HttpRequest request = HttpRequest.newBuilder(info.endpoint("/lol-champ-select/v1/session"))
-                    .timeout(Duration.ofSeconds(2))
-                    .header("Authorization", info.authHeader())
-                    .GET()
-                    .build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 404) {
-                return ChampSelectSnapshot.waiting("Client idle (no champ select).");
-            }
-            if (response.statusCode() != 200) {
-                return ChampSelectSnapshot.waiting("Champ select unavailable (HTTP " + response.statusCode() + ").");
-            }
-            JsonNode root = mapper.readTree(response.body());
-            return parseSnapshot(root);
-        } catch (IOException ex) {
-            cachedInfo = null;
-            httpClient = null;
-            return ChampSelectSnapshot.waiting("Looking for League client...");
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            return ChampSelectSnapshot.waiting("Looking for League client...");
+
+
+
+            LockfileInfo info = readLockfile(lockfilePath);
+
+            URI uri = new URI("wss://127.0.0.1:" + info.port());
+
+
+
+            wsClient = new LcuWebSocketClient(uri, info.authHeader());
+
+            wsClient.setSocket(insecureContext().getSocketFactory().createSocket());
+
+            wsClient.connect();
+
+
+
+        } catch (Exception e) {
+
+            System.err.println("[LCU Watcher] Connection failed: " + e.getMessage());
+
+            scheduleReconnect();
+
         }
+
     }
 
-    private ChampSelectSnapshot parseSnapshot(JsonNode root) {
-        List<String> allyBans = convertBans(root.path("bans").path("myTeam"));
-        List<String> enemyBans = convertBans(root.path("bans").path("theirTeam"));
-        List<String> allyPicks = convertTeam(root.path("myTeam"));
-        List<String> enemyPicks = convertTeam(root.path("theirTeam"));
-        ChampSelectSnapshot.Side firstPickSide = resolveFirstPickSide(root.path("actions"));
-        String phase = root.path("timer").path("phase").asText("BAN_PICK");
-        String status = "Mirroring live champ select (" + phase + ")";
-        return new ChampSelectSnapshot(
-                true,
-                firstPickSide,
-                allyBans,
-                enemyBans,
-                allyPicks,
-                enemyPicks,
-                status
-        );
+
+
+    private void scheduleReconnect() {
+
+        if (!running.get()) return;
+
+        reconnectExecutor.schedule(this::connect, 5, TimeUnit.SECONDS);
+
     }
 
-    private List<String> convertBans(JsonNode node) {
-        List<String> bans = new ArrayList<>(SLOT_COUNT);
-        for (int i = 0; i < SLOT_COUNT; i++) {
-            String entry = null;
-            if (node != null && node.has(i)) {
-                int id = node.get(i).asInt(-1);
-                entry = mapChampion(id);
+
+
+    private void broadcast(ChampSelectSnapshot snapshot) {
+
+        listeners.forEach(listener -> {
+
+            try {
+
+                listener.accept(snapshot);
+
+            } catch (Exception ex) {
+
+                System.err.println("[LCU Watcher] Listener error: " + ex.getMessage());
+
+                ex.printStackTrace();
+
             }
-            bans.add(entry);
-        }
-        return List.copyOf(bans);
+
+        });
+
     }
 
-    private List<String> convertTeam(JsonNode teamNode) {
-        List<String> picks = new ArrayList<>(SLOT_COUNT);
-        for (int i = 0; i < SLOT_COUNT; i++) {
-            String entry = null;
-            if (teamNode != null && teamNode.has(i)) {
-                int id = teamNode.get(i).path("championId").asInt(-1);
-                entry = mapChampion(id);
+
+
+                        private void handleWebSocketMessage(String message) {
+
+
+
+                
+
+
+
+                            if (message.contains("bans")) {
+
+
+
+                                System.out.println("[LCU Watcher] Received ban-related message: " + message); // DEBUG
+
+
+
+                            }
+
+
+
+                
+
+
+
+                            try {
+
+
+
+                JsonNode event = mapper.readTree(message);
+
+
+
+                if (!event.isArray() || event.size() < 3) {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+    
+
+
+
+                String eventName = event.get(1).asText();
+
+
+
+                if (!"OnJsonApiEvent".equals(eventName)) {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+    
+
+
+
+                JsonNode payload = event.get(2);
+
+
+
+                String uri = payload.path("uri").asText();
+
+
+
+                            if (!uri.contains("/lol-champ-select/v1/session")) {
+
+
+
+                                return;
+
+
+
+                            }
+
+
+
+    
+
+
+
+                String eventType = payload.path("eventType").asText();
+
+
+
+                JsonNode data = payload.path("data");
+
+
+
+    
+
+
+
+                if ("Delete".equals(eventType)) {
+
+
+
+                    broadcast(ChampSelectSnapshot.waiting("Client idle (no champ select)."));
+
+
+
+                } else if (("Create".equals(eventType) || "Update".equals(eventType)) && data != null && !data.isNull()) {
+
+
+
+                    broadcast(parseSnapshot(data));
+
+
+
+                }
+
+
+
+            } catch (IOException e) {
+
+
+
+                System.err.println("[LCU Watcher] Error parsing WebSocket message: " + e.getMessage());
+
+
+
             }
-            picks.add(entry);
+
+
+
         }
-        return List.copyOf(picks);
-    }
+
+
+
+                private ChampSelectSnapshot parseSnapshot(JsonNode root) {
+
+
+
+                    List<String> allyBans = convertBans(root.path("bans").path("myTeamBans"));
+
+
+
+                    List<String> enemyBans = convertBans(root.path("bans").path("theirTeamBans"));
+
+
+
+                    List<String> allyPicks = convertTeam(root.path("myTeam"), true);
+
+
+
+                    List<String> enemyPicks = convertTeam(root.path("theirTeam"), false);
+
+
+
+                    ChampSelectSnapshot.Side firstPickSide = resolveFirstPickSide(root.path("actions"));
+
+
+
+                    String phase = root.path("timer").path("phase").asText("BAN_PICK");
+
+
+
+                    String status;
+
+
+
+                    if ("BAN_PICK".equalsIgnoreCase(phase)) {
+
+
+
+                        status = "Banning and Picking in progress...";
+
+
+
+                    } else {
+
+
+
+                        status = "Waiting for Champion Select...";
+
+
+
+                    }
+
+
+
+                    return new ChampSelectSnapshot(true, firstPickSide, allyBans, enemyBans, allyPicks, enemyPicks, status);
+
+
+
+                }
+
+
+
+    
+
+
+
+                private List<String> convertBans(JsonNode bansNode) {
+
+
+
+    
+
+
+
+                    List<String> bans = new ArrayList<>(SLOT_COUNT);
+
+
+
+    
+
+
+
+                    for (int i = 0; i < SLOT_COUNT; i++) {
+
+
+
+    
+
+
+
+                        String entry = null;
+
+
+
+    
+
+
+
+                        if (bansNode != null && bansNode.isArray() && i < bansNode.size()) {
+
+
+
+    
+
+
+
+                            JsonNode banNode = bansNode.get(i);
+
+
+
+    
+
+
+
+                            int championId = -1;
+
+
+
+    
+
+
+
+                            if (banNode.isObject()) {
+
+
+
+    
+
+
+
+                                championId = banNode.path("championId").asInt(-1);
+
+
+
+    
+
+
+
+                            } else {
+
+
+
+    
+
+
+
+                                championId = banNode.asInt(-1);
+
+
+
+    
+
+
+
+                            }
+
+
+
+    
+
+
+
+                            entry = mapChampion(championId);
+
+
+
+    
+
+
+
+                        }
+
+
+
+    
+
+
+
+                        bans.add(entry);
+
+
+
+    
+
+
+
+                    }
+
+
+
+    
+
+
+
+                    return bans;
+
+
+
+    
+
+
+
+                }
+
+
+
+    
+
+
+
+        private List<String> convertTeam(JsonNode teamNode, boolean isAlly) {
+
+
+
+            List<String> picks = new ArrayList<>(SLOT_COUNT);
+
+
+
+            for (int i = 0; i < SLOT_COUNT; i++) {
+
+
+
+                picks.add(null);
+
+
+
+            }
+
+
+
+            if (teamNode != null && teamNode.isArray()) {
+
+
+
+                for (JsonNode pick : teamNode) {
+
+
+
+                    int cellId = pick.path("cellId").asInt(-1);
+
+
+
+                    int index = isAlly ? cellId : cellId - SLOT_COUNT;
+
+
+
+                    if (index >= 0 && index < SLOT_COUNT) {
+
+
+
+                        int championId = pick.path("championId").asInt(-1);
+
+
+
+                        picks.set(index, mapChampion(championId));
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            }
+
+
+
+            return picks;
+
+
+
+        }
+
+
 
     private String mapChampion(int id) {
-        if (id <= 0) {
-            return null;
-        }
+
+        if (id <= 0) return null;
+
         return ChampionIdMapper.nameForId(id);
+
     }
+
+
 
     private ChampSelectSnapshot.Side resolveFirstPickSide(JsonNode actionsNode) {
-        if (actionsNode == null || !actionsNode.isArray()) {
-            return ChampSelectSnapshot.Side.UNKNOWN;
-        }
+
+        if (actionsNode == null || !actionsNode.isArray()) return ChampSelectSnapshot.Side.UNKNOWN;
+
         for (JsonNode turn : actionsNode) {
+
             for (JsonNode action : turn) {
+
                 if ("pick".equalsIgnoreCase(action.path("type").asText(""))) {
-                    boolean ally = action.path("isAllyAction").asBoolean(false);
-                    return ally ? ChampSelectSnapshot.Side.ALLY : ChampSelectSnapshot.Side.ENEMY;
+
+                    boolean isAlly = action.path("isAllyAction").asBoolean(false);
+
+                    return isAlly ? ChampSelectSnapshot.Side.ALLY : ChampSelectSnapshot.Side.ENEMY;
+
                 }
+
             }
+
         }
+
         return ChampSelectSnapshot.Side.UNKNOWN;
+
     }
+
+
 
     private LockfileInfo readLockfile(Path path) throws IOException {
-        String content = Files.readString(path).trim();
+
+        String content = Files.readString(path, StandardCharsets.UTF_8).trim();
+
         String[] parts = content.split(":");
-        if (parts.length < 5) {
-            throw new IOException("Unexpected lockfile format");
-        }
-        int port = Integer.parseInt(parts[2]);
-        String password = parts[3];
-        String protocol = parts[4];
-        String auth = "Basic " + Base64.getEncoder().encodeToString(("riot:" + password).getBytes(StandardCharsets.UTF_8));
-        return new LockfileInfo(port, password, protocol, auth);
+
+        if (parts.length < 4) throw new IOException("Invalid lockfile format");
+
+        return new LockfileInfo(Integer.parseInt(parts[2]), parts[3]);
+
     }
+
+
 
     private Optional<Path> locateLockfile() {
-        Path override = overrideLockfile();
-        if (override != null) {
-            if (Files.exists(override)) {
-                return Optional.of(override);
-            }
-            System.err.println("[LCU Watcher] LEAGUE_LOCKFILE_PATH set but not found: " + override);
-        }
-        List<Path> candidates = candidatePaths();
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
-                return Optional.of(candidate);
-            }
-        }
-        return Optional.empty();
-    }
 
-    private Path overrideLockfile() {
-        String override = System.getenv("LEAGUE_LOCKFILE_PATH");
-        if (override == null || override.isBlank()) {
-            return null;
-        }
-        return Path.of(override.trim());
-    }
+        Path override = Optional.ofNullable(System.getenv("LEAGUE_LOCKFILE_PATH")).map(Path::of).orElse(null);
 
-    private List<Path> candidatePaths() {
-        List<Path> paths = new ArrayList<>();
+        if (override != null && Files.exists(override)) {
+
+            return Optional.of(override);
+
+        }
+
+
+
+        List<Path> candidates = new ArrayList<>();
+
         String os = System.getProperty("os.name", "generic").toLowerCase();
-        if (os.contains("mac")) {
-            Path system = Path.of("/Applications/League of Legends.app/Contents/LoL/lockfile");
-            Path user = Path.of(System.getProperty("user.home", ""), "Applications", "League of Legends.app", "Contents", "LoL", "lockfile");
-            paths.add(system);
-            paths.add(user);
-        } else { // default to Windows order
-            paths.add(Path.of("C:", "Riot Games", "League of Legends", "lockfile"));
-            String localAppData = Optional.ofNullable(System.getenv("LOCALAPPDATA")).orElse("");
-            if (!localAppData.isBlank()) {
-                paths.add(Path.of(localAppData, "Riot Games", "League of Legends", "lockfile"));
-                paths.add(Path.of(localAppData, "Riot Games", "Riot Client", "Config", "lockfile"));
+
+        if (os.contains("win")) {
+
+            String localAppData = System.getenv("LOCALAPPDATA");
+
+            if (localAppData != null) {
+
+                candidates.add(Path.of(localAppData, "Riot Games", "League of Legends", "lockfile"));
+
             }
-            String programFiles = Optional.ofNullable(System.getenv("PROGRAMFILES")).orElse("C:\\Program Files");
-            if (!programFiles.isBlank()) {
-                paths.add(Path.of(programFiles, "Riot Games", "League of Legends", "lockfile"));
+
+            candidates.add(Path.of("C:", "Riot Games", "League of Legends", "lockfile"));
+
+            String programFiles = System.getenv("PROGRAMFILES");
+
+            if (programFiles != null) {
+
+                candidates.add(Path.of(programFiles, "Riot Games", "League of Legends", "lockfile"));
+
             }
+
+        } else if (os.contains("mac")) {
+
+            candidates.add(Path.of("/Applications/League of Legends.app/Contents/LoL/lockfile"));
+
+            candidates.add(Path.of(System.getProperty("user.home"), "Applications/League of Legends.app/Contents/LoL/lockfile"));
+
         }
-        return paths;
+
+
+
+        for (Path candidate : candidates) {
+
+            if (Files.exists(candidate)) {
+
+                return Optional.of(candidate);
+
+            }
+
+        }
+
+        return Optional.empty();
+
     }
 
-    private HttpClient ensureClient(LockfileInfo info) {
-        LockfileInfo cached = this.cachedInfo;
-        if (cached != null && cached.port == info.port && Objects.equals(cached.password, info.password)) {
-            return httpClient;
-        }
-        HttpClient client = HttpClient.newBuilder()
-                .sslContext(insecureContext())
-                .connectTimeout(Duration.ofSeconds(2))
-                .version(HttpClient.Version.HTTP_1_1)
-                .build();
-        this.cachedInfo = info;
-        this.httpClient = client;
-        return client;
-    }
+
 
     private SSLContext insecureContext() {
+
         try {
-            TrustManager[] trustAll = new TrustManager[]{
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(X509Certificate[] chain, String authType) {
-                        }
 
-                        @Override
-                        public void checkServerTrusted(X509Certificate[] chain, String authType) {
-                        }
+            TrustManager[] trustAll = {new X509TrustManager() {
 
-                        @Override
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[0];
-                        }
-                    }
-            };
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+
+                public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+
+            }};
+
             SSLContext context = SSLContext.getInstance("TLS");
+
             context.init(null, trustAll, new SecureRandom());
+
             return context;
-        } catch (Exception ex) {
-            throw new IllegalStateException("Unable to build SSL context", ex);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException("Failed to create insecure SSL context", e);
+
         }
+
     }
 
-    private record LockfileInfo(int port, String password, String protocol, String authHeader) {
-        URI endpoint(String path) {
-            return URI.create(protocol + "://127.0.0.1:" + port + path);
+
+
+    private record LockfileInfo(int port, String password) {
+
+        String authHeader() {
+
+            return "Basic " + Base64.getEncoder().encodeToString(("riot:" + password).getBytes(StandardCharsets.UTF_8));
+
         }
+
     }
+
+
+
+    private class LcuWebSocketClient extends WebSocketClient {
+
+        LcuWebSocketClient(URI serverUri, String authHeader) {
+
+            super(serverUri);
+
+            addHeader("Authorization", authHeader);
+
+        }
+
+
+
+        @Override
+
+        public void onOpen(ServerHandshake handshakedata) {
+
+            System.out.println("[LCU Watcher] WebSocket connected.");
+
+            send(SUBSCRIBE_ALL_EVENTS);
+
+            broadcast(ChampSelectSnapshot.waiting("Client idle (no champ select)."));
+
+        }
+
+
+
+        @Override
+
+        public void onMessage(String message) {
+
+            handleWebSocketMessage(message);
+
+        }
+
+
+
+        @Override
+
+        public void onClose(int code, String reason, boolean remote) {
+
+            System.out.println("[LCU Watcher] WebSocket closed: " + reason);
+
+            broadcast(ChampSelectSnapshot.waiting("Looking for League client..."));
+
+            if (running.get()) {
+
+                scheduleReconnect();
+
+            }
+
+        }
+
+
+
+        @Override
+
+        public void onError(Exception ex) {
+
+            System.err.println("[LCU Watcher] WebSocket error: " + ex.getMessage());
+
+        }
+
+    }
+
 }
