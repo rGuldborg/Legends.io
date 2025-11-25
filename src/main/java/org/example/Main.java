@@ -44,7 +44,7 @@ public class Main extends Application {
         ThemeManager.applyTheme("dark.css");
 
         stage.initStyle(StageStyle.TRANSPARENT);
-        stage.setTitle("League Assistant FX");
+        stage.setTitle("mejais");
         stage.setScene(scene);
         stage.setMinWidth(1100);
         stage.setMinHeight(720);

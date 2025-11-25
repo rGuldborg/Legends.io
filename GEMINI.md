@@ -1,8 +1,8 @@
-# Project: Legends.io
+# Project: mejais
 
 ## Project Overview
 
-This project is a JavaFX-based desktop application called "League Assistant FX". It appears to be a tool for the game League of Legends, likely providing stats, recommendations, or other in-game information. It uses Maven for dependency management and includes libraries for interacting with the Riot Games API (`orianna`), handling JSON (`jackson-databind`), and logging (`slf4j`).
+This project is a JavaFX-based desktop application called "mejais". It appears to be a tool for the game League of Legends, likely providing stats, recommendations, or other in-game information. It uses Maven for dependency management and includes libraries for interacting with the Riot Games API (`orianna`), handling JSON (`jackson-databind`), and logging (`slf4j`).
 
 The application is structured with a clear separation of concerns, with packages for controllers, models, services, and utilities. The UI is defined in FXML files and styled with CSS.
 

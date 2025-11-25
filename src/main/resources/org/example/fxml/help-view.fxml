@@ -13,22 +13,25 @@
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
-    <Label text="Drafting Guide" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
-
     <VBox spacing="10" alignment="TOP_LEFT" maxWidth="600">
-        <Label text="Automatic Drafting (Live Mirror)" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
-        <TextFlow>
-            <Text text="When the application detects that you are in a League of Legends Champion Select, it will automatically mirror the draft. This means that as champions are picked and banned in your game client, they will appear in the 'Game' tab of League Assistant FX. This feature is designed to provide real-time recommendations and insights without manual input, allowing you to focus on your game."/>
+        <Label text="Game View: Live Drafting" styleClass="help-header"/>
+        <TextFlow styleClass="help-body-text">
+            <Text text="Auto-mirrors Champion Select. Get real-time stats and recommendations. Focus on playing, not typing."/>
         </TextFlow>
 
-        <Label text="Manual Drafting" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
-        <TextFlow>
-            <Text text="You can also manually input picks and bans in the 'Game' tab if you are not in a live Champion Select, or if you wish to simulate a draft. Simply click on an empty champion slot (pick or ban) and then select a champion from the recommendations list on the right. You can also right-click a champion to clear a slot. This is useful for practicing drafts, testing team compositions, or reviewing past games."/>
+        <Label text="Game View: Simulate Drafts" styleClass="help-header"/>
+        <TextFlow styleClass="help-body-text">
+            <Text text="Manually input picks and bans. Practice strategies and test team compositions. Click empty slots to pick, right-click to clear."/>
         </TextFlow>
 
-        <Label text="Role Assignment" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
-        <TextFlow>
-            <Text text="The application attempts to automatically assign roles to picked champions based on common meta. However, for off-meta picks or specific strategies, you can manually adjust the assigned role by clicking on the role icon next to the champion. This ensures that recommendations are tailored to your team's actual composition."/>
+        <Label text="Champions View: Matchups" styleClass="help-header"/>
+        <TextFlow styleClass="help-body-text">
+            <Text text="Explore champions and instantly see good/bad matchups. Find synergies and counters to gain an edge."/>
+        </TextFlow>
+
+        <Label text="Role Assignment" styleClass="help-header"/>
+        <TextFlow styleClass="help-body-text">
+            <Text text="Roles are auto-assigned. Adjust manually for off-meta picks to tailor recommendations to your team."/>
         </TextFlow>
     </VBox>
 </VBox>
