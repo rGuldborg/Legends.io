@@ -20,9 +20,5 @@ Roles are typically assigned automatically based on the most common positions fo
 
 Ready to climb? Let Mejais guide your draft!
 
-## Updating the Stats Snapshot (maintainer-only)
-
-The `snapshot-kit/` project is only for maintainers. Run it locally (or on your server) with your production Riot API key to regenerate `data/snapshot.db`, then bundle that SQLite file with each release or host it for download. Regular users never touch `snapshot-kit` or supply API keys—public Mejais builds are always fully offline.
-
 ## Legal
 Mejais isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.

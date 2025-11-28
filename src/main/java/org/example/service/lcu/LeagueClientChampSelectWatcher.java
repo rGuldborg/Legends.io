@@ -6,7 +6,9 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -275,11 +277,8 @@ public final class LeagueClientChampSelectWatcher {
             }
         }
 
-        try {
-            return SSLContext.getDefault();
-        } catch (Exception e) {
-            throw new RuntimeException("Unable to initialize SSL context for LCU connection", e);
-        }
+        System.err.println("Warning: LCU certificate not found; falling back to insecure SSL context.");
+        return insecureContext();
     }
 
     private SSLContext sslContextFromCertificate(Path certPath) throws Exception {
@@ -298,6 +297,21 @@ public final class LeagueClientChampSelectWatcher {
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, tmf.getTrustManagers(), new SecureRandom());
         return context;
+    }
+
+    private SSLContext insecureContext() {
+        try {
+            TrustManager[] trustAll = {new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+            }};
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, trustAll, new SecureRandom());
+            return context;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create SSL context for LCU connection", e);
+        }
     }
 
     private record LockfileInfo(int port, String password) {
