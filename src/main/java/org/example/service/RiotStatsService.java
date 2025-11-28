@@ -44,8 +44,10 @@ public class RiotStatsService implements StatsService {
 
     public RiotStatsService(String apiKey, String platformTag) {
         this.platform = parsePlatform(platformTag);
-        Orianna.setRiotAPIKey(apiKey);
-        Orianna.setDefaultPlatform(this.platform);
+        if (apiKey != null && !apiKey.isBlank()) {
+            Orianna.setRiotAPIKey(apiKey);
+            Orianna.setDefaultPlatform(this.platform);
+        }
     }
 
     @Override

@@ -40,9 +40,8 @@ import org.example.model.Role;
 import org.example.model.SlotSelection;
 import org.example.model.Tier;
 import org.example.model.ChampionStats;
-import org.example.service.MockStatsService;
-import org.example.service.RiotStatsService;
 import org.example.service.StatsService;
+import org.example.service.StatsServiceFactory;
 import org.example.service.lcu.ChampSelectSnapshot;
 import org.example.service.lcu.LeagueClientChampSelectWatcher;
 import org.example.util.ChampionIconResolver;
@@ -187,7 +186,7 @@ public class GameController {
     @FXML
     public void initialize() {
         ThemeManager.addThemeChangeListener(themeListener);
-        statsService = initStatsService();
+        statsService = StatsServiceFactory.create();
         allChampionStatsMap = statsService.allChampionStats();
         configureTable();
         configureSlots();
@@ -1054,15 +1053,6 @@ public class GameController {
         if (selectionStatusLabel != null) {
             selectionStatusLabel.setText(message);
         }
-    }
-
-    private StatsService initStatsService() {
-        String apiKey = System.getProperty("RIOT_API_KEY");
-        if (apiKey != null && !apiKey.isBlank()) {
-            String platformTag = System.getenv().getOrDefault("RIOT_PLATFORM", "EUROPE_WEST");
-            return new RiotStatsService(apiKey, platformTag);
-        }
-        return new MockStatsService();
     }
 
     private String valueForSlot(Slot slot) {

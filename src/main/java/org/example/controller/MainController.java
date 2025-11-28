@@ -37,8 +37,10 @@ public class MainController {
 
     private static final DateTimeFormatter FOOTER_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String ACTIVE_TAB_CLASS = "tab-chip-active";
-    // TODO: Replace with your actual hosted snapshot.db URL
-    private static final String REMOTE_DB_URL = "https://example.com/latest/snapshot.db";
+    private static final String REMOTE_DB_URL = System.getProperty(
+            "SNAPSHOT_REMOTE_URL",
+            System.getenv().getOrDefault("SNAPSHOT_REMOTE_URL", "")
+    );
 
 
     @FXML private TextField searchField;
@@ -402,7 +404,7 @@ public class MainController {
     }
 
     private void checkAndUpdateStatus() {
-        if (updateAvailableLabel == null) {
+        if (updateAvailableLabel == null || REMOTE_DB_URL.isBlank()) {
             return;
         }
 

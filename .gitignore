@@ -37,3 +37,4 @@ build/
 
 GEMINI.md
 data/
+snapshot-kit/.env

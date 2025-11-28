@@ -10,9 +10,9 @@
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      alignment="TOP_CENTER" spacing="20" styleClass="help-view-root">
+      alignment="TOP_CENTER" spacing="4" styleClass="help-view-root">
     <padding>
-        <Insets right="20"  left="20"/>
+        <Insets right="12"  left="12"/>
     </padding>
 
     <ImageView fitHeight="150.0" fitWidth="150.0" pickOnBounds="true" preserveRatio="true">
@@ -21,7 +21,7 @@
         </image>
     </ImageView>
 
-    <VBox spacing="10" alignment="CENTER" maxWidth="800">
+    <VBox spacing="6" alignment="CENTER" maxWidth="800">
         <Label text="Welcome to Mejais!" styleClass="help-title"/>
         <TextFlow styleClass="help-body-text" textAlignment="CENTER">
             <Text text="Mejais is your personal League of Legends draft assistant, designed to give you a competitive edge before the game even starts. By analyzing millions of high-tier matches, Mejais provides real-time insights and recommendations during Champion Select."/>
@@ -47,6 +47,11 @@
         <Label text="4. Role Assignment" styleClass="help-subheader"/>
         <TextFlow styleClass="help-body-text" textAlignment="CENTER">
             <Text text="Roles are typically assigned automatically based on the most common positions for each champion. If you're planning an off-meta pick, you can manually change the assigned role to refine the recommendations for your team's unique strategy."/>
+        </TextFlow>
+
+        <Label text="Legal Notice" styleClass="help-subheader"/>
+        <TextFlow styleClass="help-body-text" textAlignment="CENTER">
+            <Text text="Mejais isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc."/>
         </TextFlow>
 
         <Label text="Ready to climb? Let Mejais guide your draft!" styleClass="help-footer"/>

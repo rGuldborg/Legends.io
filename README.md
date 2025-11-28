@@ -19,3 +19,10 @@ Navigate to the 'Champions' tab to see detailed statistics for every champion. S
 Roles are typically assigned automatically based on the most common positions for each champion. If you're planning an off-meta pick, you can manually change the assigned role to refine the recommendations for your team's unique strategy.
 
 Ready to climb? Let Mejais guide your draft!
+
+## Updating the Stats Snapshot
+
+Use the standalone `snapshot-kit/` project to run `CollectorRunner`. The kit contains its own `pom.xml`, sources, and shell/PowerShell launchers, so you can copy the entire folder to any machine, drop in a `.env` with your Riot API key, and regenerate `data/snapshot.db`. Ship that SQLite file with every release so end users never need their own API keys.
+
+## Legal
+Mejais isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.

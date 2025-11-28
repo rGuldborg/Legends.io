@@ -6,14 +6,15 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -78,7 +79,7 @@ public final class LeagueClientChampSelectWatcher {
             URI uri = new URI("wss://127.0.0.1:" + info.port());
 
             wsClient = new LcuWebSocketClient(uri, info.authHeader());
-            wsClient.setSocket(insecureContext().getSocketFactory().createSocket());
+            wsClient.setSocket(buildSecureContext(lockfilePath).getSocketFactory().createSocket());
             wsClient.connect();
 
         } catch (Exception e) {
@@ -118,8 +119,6 @@ public final class LeagueClientChampSelectWatcher {
                 return;
             }
 
-            System.out.println("LCU Champ-select message: " + payload.toString());
-
             String eventType = payload.path("eventType").asText();
             JsonNode data = payload.path("data");
 
@@ -133,11 +132,8 @@ public final class LeagueClientChampSelectWatcher {
     }
 
     private ChampSelectSnapshot parseSnapshot(JsonNode root) {
-        System.out.println("Parsing snapshot (root omitted for brevity)");
         List<String> allyBans = extractBansFromActions(root.path("actions"), true);
         List<String> enemyBans = extractBansFromActions(root.path("actions"), false);
-        System.out.println("Ally bans: " + allyBans);
-        System.out.println("Enemy bans: " + enemyBans);
         List<String> allyPicks = convertTeam(root.path("myTeam"), true);
         List<String> enemyPicks = convertTeam(root.path("theirTeam"), false);
         ChampSelectSnapshot.Side firstPickSide = resolveFirstPickSide(root.path("actions"));
@@ -175,7 +171,6 @@ public final class LeagueClientChampSelectWatcher {
     }
 
     private List<String> convertTeam(JsonNode teamNode, boolean isAlly) {
-        System.out.println("Converting team (isAlly=" + isAlly + "): " + teamNode.toString());
         List<String> picks = new ArrayList<>(SLOT_COUNT);
         for (int i = 0; i < SLOT_COUNT; i++) {
             picks.add(null);
@@ -195,12 +190,10 @@ public final class LeagueClientChampSelectWatcher {
                     if (championId <= 0) {
                         championId = pick.path("championPickIntent").asInt(-1);
                     }
-                    System.out.println("  - Pick: cellId=" + cellId + ", index=" + index + ", championId=" + championId);
                     picks.set(index, mapChampion(championId));
                 }
             }
         }
-        System.out.println("Converted team (isAlly=" + isAlly + "): " + picks);
         return picks;
     }
 
@@ -260,19 +253,51 @@ public final class LeagueClientChampSelectWatcher {
         return Optional.empty();
     }
 
-    private SSLContext insecureContext() {
-        try {
-            TrustManager[] trustAll = {new X509TrustManager() {
-                public void checkClientTrusted(X509Certificate[] chain, String authType) {}
-                public void checkServerTrusted(X509Certificate[] chain, String authType) {}
-                public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
-            }};
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(null, trustAll, new SecureRandom());
-            return context;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create insecure SSL context", e);
+    private SSLContext buildSecureContext(Path lockfilePath) {
+        List<Path> certCandidates = new ArrayList<>();
+        if (lockfilePath != null) {
+            certCandidates.add(lockfilePath.getParent().resolve("riotgames.pem"));
         }
+
+        String localAppData = System.getenv("LOCALAPPDATA");
+        if (localAppData != null) {
+            certCandidates.add(Path.of(localAppData, "Riot Games", "Riot Client", "Config", "riotgames.pem"));
+        }
+        certCandidates.add(Path.of("C:", "Riot Games", "League of Legends", "riotgames.pem"));
+
+        for (Path candidate : certCandidates) {
+            if (candidate != null && Files.exists(candidate)) {
+                try {
+                    return sslContextFromCertificate(candidate);
+                } catch (Exception ex) {
+                    System.err.println("Failed to load LCU certificate from " + candidate + ": " + ex.getMessage());
+                }
+            }
+        }
+
+        try {
+            return SSLContext.getDefault();
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to initialize SSL context for LCU connection", e);
+        }
+    }
+
+    private SSLContext sslContextFromCertificate(Path certPath) throws Exception {
+        CertificateFactory factory = CertificateFactory.getInstance("X.509");
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+
+        try (var input = Files.newInputStream(certPath)) {
+            X509Certificate certificate = (X509Certificate) factory.generateCertificate(input);
+            keyStore.load(null, null);
+            keyStore.setCertificateEntry("riotgames", certificate);
+        }
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStore);
+
+        SSLContext context = SSLContext.getInstance("TLS");
+        context.init(null, tmf.getTrustManagers(), new SecureRandom());
+        return context;
     }
 
     private record LockfileInfo(int port, String password) {
