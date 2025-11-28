@@ -24,7 +24,7 @@
 
 ## Operational Notes
 - Remote snapshot updates are optional and configurable via the `SNAPSHOT_REMOTE_URL` system property/environment variable so production builds can point to an HTTPS endpoint that you control.
-- A dedicated `snapshot-kit/` project (scripts + env templates + collector sources) produces `data/snapshot.db` entirely server-side; the packaged desktop client only consumes that SQLite file and never embeds or requests API credentials.
+- A maintainer-only `snapshot-kit/` project (scripts + env templates + collector sources) produces `data/snapshot.db` on trusted machines using the production key; the packaged desktop client only consumes that SQLite file and never embeds or requests API credentials from end users.
 
 ## Requested Access
 - **Production API Key:** LoL standard APIs + match-v5 for periodic aggregation.
