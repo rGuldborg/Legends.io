@@ -51,13 +51,14 @@ public class MockStatsService implements StatsService {
             Role role = sampleRole(id);
             result.add(new ChampionSummary(
                     id,
-                    id,
+                    ChampionNames.displayName(id),
                     opTier,
                     synTier,
                     coTier,
                     score,
                     ChampionIconResolver.load(id),
                     role,
+                    List.of(role),
                     opWr,
                     synWr,
                     coWr,
@@ -116,6 +117,7 @@ public class MockStatsService implements StatsService {
                 score,
                 ChampionIconResolver.load(canonicalId),
                 role,
+                List.of(role),
                 opWr,
                 synWr,
                 coWr,
@@ -123,8 +125,6 @@ public class MockStatsService implements StatsService {
                 coResult.pairs()
         ));
     }
-
-
 
     private ChampionStats generateStats(String championId) {
         ChampionStats stats = new ChampionStats();
@@ -205,7 +205,7 @@ public class MockStatsService implements StatsService {
 
     private double seededDelta(String champ, String partner, double scale) {
         int hash = Math.abs((champ + ":" + partner).hashCode());
-        double bias = (hash % 11) - 5; // -5..5
+        double bias = (hash % 11) - 5;
         return bias * scale / 10.0;
     }
 

@@ -8,6 +8,15 @@ public class WinPlay {
     private int wins;
     private int games;
 
+    public WinPlay() {
+        this(0, 0);
+    }
+
+    public WinPlay(int wins, int games) {
+        this.wins = wins;
+        this.games = games;
+    }
+
     public void add(boolean win) {
         games++;
         if (win) wins++;

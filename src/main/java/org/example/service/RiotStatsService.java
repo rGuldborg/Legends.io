@@ -2,7 +2,7 @@ package org.example.service;
 
 import com.merakianalytics.orianna.Orianna;
 import com.merakianalytics.orianna.types.common.Platform;
-import org.example.collector.SnapshotStore;
+
 import org.example.model.ChampionStats;
 import org.example.model.ChampionSummary;
 import org.example.model.PairWinRate;
@@ -12,11 +12,13 @@ import org.example.model.SlotSelection;
 import org.example.model.StatsSnapshot;
 import org.example.model.Tier;
 import org.example.model.WinPlay;
+import org.example.service.db.SnapshotRebuilder;
+import java.sql.SQLException;
+
 import org.example.util.ChampionIconResolver;
 import org.example.util.ChampionNames;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,7 +38,7 @@ public class RiotStatsService implements StatsService {
     private static final int MIN_TOTAL_GAMES = 30;
     private final Platform platform;
     private final StatsService fallback = new MockStatsService();
-    private final File snapshotFile = new File("data/snapshot.json");
+    private final File snapshotFile = new File("data/snapshot.db");
     private StatsSnapshot cachedSnapshot;
     private long cachedStamp = -1L;
 
@@ -63,6 +65,12 @@ public class RiotStatsService implements StatsService {
                 ChampionStats stats = entry.getValue();
                 if (stats.games() < MIN_TOTAL_GAMES) continue;
 
+                if (context != null && context.targetRole() != Role.UNKNOWN) {
+                    if (!stats.allRoles().contains(context.targetRole())) {
+                        continue;
+                    }
+                }
+
                 double opRaw = stats.winRate();
                 double op = clamp(opRaw);
                 PairMetrics synergy = synergyMetrics(stats, context);
@@ -84,6 +92,7 @@ public class RiotStatsService implements StatsService {
                         score,
                         ChampionIconResolver.load(champion),
                         preferredRole,
+                        stats.allRoles(),
                         opRaw,
                         synWr,
                         coWr,
@@ -156,6 +165,7 @@ public class RiotStatsService implements StatsService {
                 score,
                 ChampionIconResolver.load(canonicalId),
                 preferredRole,
+                stats.allRoles(),
                 opRaw,
                 synWr,
                 coWr,
@@ -172,9 +182,10 @@ public class RiotStatsService implements StatsService {
             return cachedSnapshot;
         }
         try {
-            cachedSnapshot = new SnapshotStore(snapshotFile).load();
+            cachedSnapshot = new SnapshotRebuilder().rebuildSnapshot();
             cachedStamp = modified;
-        } catch (IOException e) {
+        } catch (SQLException e) {
+            System.err.println("Failed to load stats from database: " + e.getMessage());
             cachedSnapshot = null;
         }
         return cachedSnapshot;

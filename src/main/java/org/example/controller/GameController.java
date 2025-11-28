@@ -260,9 +260,14 @@ public class GameController {
         filteredTableData.setPredicate(summary -> {
             if (summary == null) return false;
             boolean matchesSearch = query.isEmpty() || summary.name().toLowerCase().contains(query);
-            boolean matchesRole = activeRoleFilter.mappedRole() == null
-                    || summary.preferredRole() == null
-                    || summary.preferredRole() == activeRoleFilter.mappedRole();
+            
+            Role filterRole = activeRoleFilter.mappedRole();
+            if (filterRole == null) {
+                return matchesSearch;
+            }
+
+            boolean matchesRole = summary.allRoles().contains(filterRole);
+            
             return matchesSearch && matchesRole;
         });
     }
@@ -527,6 +532,7 @@ public class GameController {
                 activeRoleFilter = filter;
                 updateRoleFilterSelection();
                 applyChampionFilter(championFilterField.getText());
+                recommendedTable.scrollTo(0);
             }
         });
         container.setUserData(filter);
@@ -787,7 +793,6 @@ public class GameController {
                 selectRole(slot, role);
             });
             HBox.setMargin(chip, new Insets(0, 3, 0, 0));
-            slot.roleRow.getChildren().add(chip);
             slot.roleChips.add(new RoleChip(role, chip, icon));
             Tooltip.install(chip, new Tooltip(role.label()));
         }
@@ -1052,7 +1057,7 @@ public class GameController {
     }
 
     private StatsService initStatsService() {
-        String apiKey = System.getenv("RIOT_API_KEY");
+        String apiKey = System.getProperty("RIOT_API_KEY");
         if (apiKey != null && !apiKey.isBlank()) {
             String platformTag = System.getenv().getOrDefault("RIOT_PLATFORM", "EUROPE_WEST");
             return new RiotStatsService(apiKey, platformTag);

@@ -13,6 +13,7 @@ public record ChampionSummary(
         double score,
         Image icon,
         Role preferredRole,
+        List<Role> allRoles,
         double opWinRate,
         double synWinRate,
         double coWinRate,

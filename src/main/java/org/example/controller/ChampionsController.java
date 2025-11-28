@@ -94,7 +94,7 @@ public class ChampionsController {
     }
 
     private StatsService initStatsService() {
-        String apiKey = System.getenv("RIOT_API_KEY");
+        String apiKey = System.getProperty("RIOT_API_KEY");
         if (apiKey != null && !apiKey.isBlank()) {
             String platformTag = System.getenv().getOrDefault("RIOT_PLATFORM", "EUROPE_WEST");
             return new RiotStatsService(apiKey, platformTag);
@@ -219,16 +219,15 @@ public class ChampionsController {
 
         Map<String, ChampionStats> championStats = statsService.allChampionStats();
         if (championStats != null && !championStats.isEmpty()) {
-            championStats.entrySet().stream()
-                    .sorted(Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
-                    .forEach(entry -> {
-                        String id = entry.getKey();
-                        ChampionInfo info = new ChampionInfo(id, ChampionNames.displayName(id));
-                        championInfos.add(info);
-                        championIndex.put(info.displayName(), info);
-                        statsIndex.put(id, entry.getValue());
-                    });
-            return;
+                    championStats.entrySet().stream()
+                            .sorted(Comparator.comparing(entry -> ChampionNames.displayName(entry.getKey()), String.CASE_INSENSITIVE_ORDER))
+                            .forEach(entry -> {
+                                String id = entry.getKey();
+                                ChampionInfo info = new ChampionInfo(id, ChampionNames.displayName(id));
+                                championInfos.add(info);
+                                championIndex.put(info.displayName(), info);
+                                statsIndex.put(id, entry.getValue());
+                            });            return;
         }
         loadChampionInfosFromAssets();
     }
@@ -268,7 +267,6 @@ public class ChampionsController {
         avatar.setFitWidth(72);
         avatar.setFitHeight(72);
         avatar.setPreserveRatio(true);
-        avatar.setSmooth(true);
         avatar.setImage(ChampionIconResolver.load(champion.id()));
 
         Label name = new Label(champion.displayName());
@@ -308,43 +306,11 @@ public class ChampionsController {
         winRateLabel.setText(String.format("Win Rate: %.1f%%", winRate * 100));
         applyWinRateStyling(winRate);
 
-        availableRoles = resolveRolesFromStats(stats);
+        availableRoles = stats.allRoles();
         activeRole = availableRoles.get(0);
         roleCache.put(champion.id(), availableRoles);
         renderRoleChips();
         renderMatchups(stats, winRate);
-    }
-
-    private List<Role> resolveRolesFromStats(ChampionStats stats) {
-        Map<String, Integer> counts = stats.roleCounts();
-        if (counts == null || counts.isEmpty()) {
-            return List.of(Role.UNKNOWN);
-        }
-        int totalGames = Math.max(stats.games(), counts.values().stream().mapToInt(Integer::intValue).sum());
-        int minimumRoleGames = totalGames > 0 ? (int) Math.ceil(totalGames * ROLE_SHARE_THRESHOLD) : 0;
-
-        List<RoleShare> sortedRoles = counts.entrySet().stream()
-                .sorted(Entry.<String, Integer>comparingByValue().reversed())
-                .map(entry -> new RoleShare(mapRole(entry.getKey()), entry.getValue()))
-                .filter(share -> share.role() != Role.UNKNOWN)
-                .toList();
-
-        List<Role> roles = sortedRoles.stream()
-                .filter(share -> share.count() >= minimumRoleGames)
-                .map(RoleShare::role)
-                .distinct()
-                .limit(2)
-                .toList();
-
-        if (roles.isEmpty()) {
-            roles = sortedRoles.stream()
-                    .map(RoleShare::role)
-                    .distinct()
-                    .limit(Math.min(2, sortedRoles.size()))
-                    .toList();
-        }
-
-        return roles.isEmpty() ? List.of(Role.UNKNOWN) : roles;
     }
 
     private Role mapRole(String lane) {
@@ -372,7 +338,7 @@ public class ChampionsController {
             if (stats == null) {
                 return List.of();
             }
-            return resolveRolesFromStats(stats);
+            return stats.allRoles();
         });
     }
 

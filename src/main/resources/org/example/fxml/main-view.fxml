@@ -21,10 +21,10 @@
                 <left>
                     <ImageView fitHeight="75" preserveRatio="true">
                         <BorderPane.margin>
-                            <Insets top="5.0" left="5.0"/>
+                           
                         </BorderPane.margin>
                         <image>
-                            <Image url="@/org/example/images/logo/logot.png"/>
+                            <Image url="@/org/example/images/logo/logot4.png"/>
                         </image>
                     </ImageView>
                 </left>                <center>
@@ -33,7 +33,6 @@
                             <Insets top="6" right="0" bottom="6" left="0"/>
                         </padding>
 
-                        <!-- THEME TOGGLE BUTTON -->
                         <Button fx:id="themeToggleButton"
                                 styleClass="window-control header-icon-button"
                                 onAction="#onThemeToggle"
@@ -60,7 +59,6 @@
                                    prefWidth="320"
                                    maxWidth="320"/>
 
-                        <!-- REFRESH BUTTON -->
                         <Button fx:id="refreshButton"
                                 styleClass="window-control header-icon-button"
                                 onAction="#onRefresh">
@@ -110,7 +108,6 @@
         </VBox>
     </top>
 
-    <!-- MAIN CONTENT -->
     <center>
         <VBox styleClass="content-area" spacing="0">
             <HBox styleClass="tab-bar" alignment="CENTER_LEFT" spacing="4">
@@ -142,7 +139,6 @@
         </VBox>
     </center>
 
-    <!-- FOOTER -->
     <bottom>
         <HBox alignment="CENTER_LEFT" styleClass="footer" spacing="12">
             <padding>
@@ -151,8 +147,7 @@
             <Label fx:id="footerLastUpdatedLabel" text="Last updated: --" styleClass="footer-text"/>
             <Label text="|" styleClass="footer-text"/>
             <Label fx:id="patchLabel" text="Patch: --" styleClass="footer-text"/>
-            <Label text="|" styleClass="footer-text"/>
-            <Label text="v1.0.0" styleClass="footer-text"/>
+            <Label fx:id="updateAvailableLabel" text="Update Available!" styleClass="footer-text" visible="false" managed="false"/>
             <Pane HBox.hgrow="ALWAYS"/>
             <Label text="League Status:" styleClass="footer-text"/>
             <Label fx:id="lcuStatusLabel" text="Unknown" styleClass="footer-text"/>

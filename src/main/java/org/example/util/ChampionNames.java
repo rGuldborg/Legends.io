@@ -39,7 +39,8 @@ public final class ChampionNames {
             }
         } catch (Exception ex) {
         }
-        registerManual("Za'ahen", "Za'ahen", display, normalized, "Zaahen", "Zaheen");
+        registerManual("Zaahen", "Zaahen", display, normalized, "zaahen", "zaheen");
+        registerManual("Wukong", "Wukong", display, normalized, "monkeyking");
         DISPLAY_BY_CANONICAL = Collections.unmodifiableMap(display);
         CANONICAL_LIST = List.copyOf(display.keySet());
         CANONICAL_BY_NORMALIZED = Collections.unmodifiableMap(normalized);

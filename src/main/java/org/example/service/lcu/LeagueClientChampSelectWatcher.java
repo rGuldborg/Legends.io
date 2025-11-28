@@ -118,6 +118,8 @@ public final class LeagueClientChampSelectWatcher {
                 return;
             }
 
+            System.out.println("LCU Champ-select message: " + payload.toString());
+
             String eventType = payload.path("eventType").asText();
             JsonNode data = payload.path("data");
 
@@ -131,8 +133,11 @@ public final class LeagueClientChampSelectWatcher {
     }
 
     private ChampSelectSnapshot parseSnapshot(JsonNode root) {
-        List<String> allyBans = convertBans(root.path("bans").path("myTeamBans"));
-        List<String> enemyBans = convertBans(root.path("bans").path("theirTeamBans"));
+        System.out.println("Parsing snapshot (root omitted for brevity)");
+        List<String> allyBans = extractBansFromActions(root.path("actions"), true);
+        List<String> enemyBans = extractBansFromActions(root.path("actions"), false);
+        System.out.println("Ally bans: " + allyBans);
+        System.out.println("Enemy bans: " + enemyBans);
         List<String> allyPicks = convertTeam(root.path("myTeam"), true);
         List<String> enemyPicks = convertTeam(root.path("theirTeam"), false);
         ChampSelectSnapshot.Side firstPickSide = resolveFirstPickSide(root.path("actions"));
@@ -146,29 +151,31 @@ public final class LeagueClientChampSelectWatcher {
         return new ChampSelectSnapshot(true, firstPickSide, allyBans, enemyBans, allyPicks, enemyPicks, status);
     }
 
-    private List<String> convertBans(JsonNode bansNode) {
-        List<String> bans = new ArrayList<>(SLOT_COUNT);
+    private List<String> extractBansFromActions(JsonNode actionsNode, boolean isAlly) {
+        List<String> bans = new ArrayList<>();
+        if (actionsNode != null && actionsNode.isArray()) {
+            for (JsonNode turn : actionsNode) {
+                for (JsonNode action : turn) {
+                    if ("ban".equalsIgnoreCase(action.path("type").asText("")) &&
+                        action.path("isAllyAction").asBoolean(false) == isAlly &&
+                        action.path("completed").asBoolean(false)) {
 
-        for (int i = 0; i < SLOT_COUNT; i++) {
-            String entry = null;
-
-            if (bansNode != null && bansNode.isArray() && i < bansNode.size()) {
-                JsonNode banNode = bansNode.get(i);
-                int championId = -1;
-
-                if (banNode.isObject()) {
-                    championId = banNode.path("championId").asInt(-1);
-                } else {
-                    championId = banNode.asInt(-1);
+                        int championId = action.path("championId").asInt(-1);
+                        if (championId > 0) {
+                            bans.add(mapChampion(championId));
+                        }
+                    }
                 }
-                entry = mapChampion(championId);
             }
-            bans.add(entry);
         }
-        return bans;
+        while (bans.size() < SLOT_COUNT) {
+            bans.add(null);
+        }
+        return bans.subList(0, SLOT_COUNT);
     }
 
     private List<String> convertTeam(JsonNode teamNode, boolean isAlly) {
+        System.out.println("Converting team (isAlly=" + isAlly + "): " + teamNode.toString());
         List<String> picks = new ArrayList<>(SLOT_COUNT);
         for (int i = 0; i < SLOT_COUNT; i++) {
             picks.add(null);
@@ -176,13 +183,24 @@ public final class LeagueClientChampSelectWatcher {
         if (teamNode != null && teamNode.isArray()) {
             for (JsonNode pick : teamNode) {
                 int cellId = pick.path("cellId").asInt(-1);
-                int index = isAlly ? cellId : cellId - SLOT_COUNT;
+                int index;
+                if (isAlly) {
+                    index = cellId - SLOT_COUNT;
+                } else {
+                    index = cellId;
+                }
+
                 if (index >= 0 && index < SLOT_COUNT) {
                     int championId = pick.path("championId").asInt(-1);
+                    if (championId <= 0) {
+                        championId = pick.path("championPickIntent").asInt(-1);
+                    }
+                    System.out.println("  - Pick: cellId=" + cellId + ", index=" + index + ", championId=" + championId);
                     picks.set(index, mapChampion(championId));
                 }
             }
         }
+        System.out.println("Converted team (isAlly=" + isAlly + "): " + picks);
         return picks;
     }
 

@@ -97,9 +97,10 @@ public final class ChampionIconResolver {
 
     private static Image loadStandard(String resource) {
         try (InputStream stream = ChampionIconResolver.class.getResourceAsStream(resource)) {
-            if (stream == null) return null;
-            return new Image(stream);
-        } catch (Exception ignored) {
+                    if (stream == null) {
+                        return null;
+                    }            return new Image(stream);
+        } catch (Exception ex) {
             return null;
         }
     }

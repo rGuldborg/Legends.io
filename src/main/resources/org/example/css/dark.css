@@ -89,6 +89,7 @@
     -fx-background-color: #1f2128;
 }
 
+
 .help-view-root {
     -fx-background-color: #131417;
     -fx-background-radius: 18;
@@ -100,20 +101,52 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 16, 0.18, 0, 5);
 }
 
+.help-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f0ca7a;
+    -fx-padding: 0 0 10 0;
+    -fx-text-alignment: center;
+}
+
 .help-header {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-fill: #f0ca7a;
+    -fx-text-alignment: center;
+}
+
+.help-subheader {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e6e8ed;
+    -fx-padding: 8 0 0 0;
+    -fx-text-alignment: center;
+}
+
+.help-body-text {
+    -fx-text-fill: #c8cddc;
+    -fx-font-size: 14px;
+    -fx-line-spacing: 4px;
+}
+
+.help-body-text Text {
+    -fx-fill: #c8cddc;
+}
+
+.help-footer {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f0ca7a;
+    -fx-padding: 20 0 0 0;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
 }
 
 .help-header.main-title {
     -fx-font-size: 24px;
 }
 
-.help-body-text {
-    -fx-text-fill: #f5f6fb;
-    -fx-font-size: 13px;
-}
 
 .help-body-text Text {
     -fx-fill: #f5f6fb;

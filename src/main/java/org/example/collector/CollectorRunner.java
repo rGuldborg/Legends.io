@@ -2,18 +2,19 @@ package org.example.collector;
 
 import com.merakianalytics.orianna.types.common.Platform;
 import com.merakianalytics.orianna.types.common.Queue;
-import org.example.model.StatsSnapshot;
 import org.example.util.RiotApiClient;
 import org.example.util.RiotRateLimiter;
 
 import java.io.File;
+import java.sql.Connection;
 import java.time.Duration;
 import java.util.List;
 
 public class CollectorRunner {
     public static void main(String[] args) throws Exception {
-        String apiKey = System.getenv("RIOT_API_KEY");
+        String apiKey = System.getProperty("RIOT_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
+            System.err.println("RIOT_API_KEY system property not set. Exiting CollectorRunner.");
             return;
         }
         String platformTag = System.getenv().getOrDefault("RIOT_PLATFORM", "EUROPE_WEST");
@@ -21,23 +22,29 @@ public class CollectorRunner {
         int seeds = parseIntEnv("SEED_COUNT", 150);
         int perSecond = parseIntEnv("RIOT_RATE_PER_SECOND", 20);
         int perTwoMinutes = parseIntEnv("RIOT_RATE_PER_TWO_MINUTES", 100);
-        File snapshotFile = new File("data/snapshot.json");
+
+        System.out.println("Clearing old data (before new collection)...");
+        DatabaseManager.clearData();
 
         Platform platform = parsePlatform(platformTag);
         RiotRateLimiter rateLimiter = new RiotRateLimiter(perSecond, Duration.ofSeconds(1), perTwoMinutes, Duration.ofMinutes(2));
         RiotApiClient apiClient = new RiotApiClient(apiKey, rateLimiter);
 
-        MatchFetcher fetcher = new MatchFetcher(platform, apiClient);
-        List<String> matchIds = fetcher.fetchRecentMatchIds(Queue.RANKED_SOLO, limit, seeds);
+        try (Connection connection = DatabaseManager.connect()) {
+            connection.setAutoCommit(false);
 
-        MatchAggregator aggregator = new MatchAggregator(platform, apiClient);
-        StatsSnapshot snapshot = aggregator.aggregate(matchIds);
+            System.out.println("Fetching match IDs...");
+            MatchFetcher fetcher = new MatchFetcher(platform, apiClient);
+            List<String> matchIds = fetcher.fetchRecentMatchIds(Queue.RANKED_SOLO, limit, seeds);
 
-        SnapshotStore store = new SnapshotStore(snapshotFile);
-        if (!snapshotFile.getParentFile().exists()) {
-            snapshotFile.getParentFile().mkdirs();
+            System.out.println("Aggregating " + matchIds.size() + " matches...");
+            MatchAggregator aggregator = new MatchAggregator(platform, apiClient, connection);
+            aggregator.aggregate(matchIds);
+
+            System.out.println("Committing stats to database...");
+            connection.commit();
+            System.out.println("Done.");
         }
-        store.save(snapshot);
     }
 
     private static int parseIntEnv(String key, int fallback) {

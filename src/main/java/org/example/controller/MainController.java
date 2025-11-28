@@ -29,11 +29,17 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.io.IOException;
 
 public class MainController {
 
     private static final DateTimeFormatter FOOTER_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String ACTIVE_TAB_CLASS = "tab-chip-active";
+    // TODO: Replace with your actual hosted snapshot.db URL
+    private static final String REMOTE_DB_URL = "https://example.com/latest/snapshot.db";
+
 
     @FXML private TextField searchField;
     @FXML private Button themeToggleButton;
@@ -50,6 +56,7 @@ public class MainController {
     @FXML private Node sunIcon;
     @FXML private Label footerLastUpdatedLabel;
     @FXML private Label patchLabel;
+    @FXML private Label updateAvailableLabel;
     @FXML private Label lcuStatusLabel;
     @FXML private Circle lcuStatusIndicator;
 
@@ -86,6 +93,7 @@ public class MainController {
         ensureChampionsViewInitialized();
         updateSnapshotTimestamp();
         updatePatchVersion();
+        checkAndUpdateStatus();
         startLcuWatcher();
     }
 
@@ -153,6 +161,7 @@ public class MainController {
     @FXML
     private void onRefresh() {
         updateSnapshotTimestamp();
+        checkAndUpdateStatus();
     }
 
     @FXML
@@ -352,7 +361,7 @@ public class MainController {
         if (footerLastUpdatedLabel == null) {
             return;
         }
-        File snapshotFile = new File("data/snapshot.json");
+        File snapshotFile = new File("data/snapshot.db");
         if (!snapshotFile.exists()) {
             footerLastUpdatedLabel.setText("Last updated: never");
             return;
@@ -390,5 +399,38 @@ public class MainController {
             e.printStackTrace();
             patchLabel.setText("Patch: Error");
         }
+    }
+
+    private void checkAndUpdateStatus() {
+        if (updateAvailableLabel == null) {
+            return;
+        }
+
+        new Thread(() -> {
+            boolean updateFound = false;
+            try {
+                File localDb = new File("data/snapshot.db");
+                long localLastModified = localDb.exists() ? localDb.lastModified() : 0;
+
+                URL url = new URL(REMOTE_DB_URL);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("HEAD"); 
+                connection.connect();
+
+                long remoteLastModified = connection.getLastModified();
+                
+                if (remoteLastModified > localLastModified) {
+                    updateFound = true;
+                }
+            } catch (IOException e) {
+                System.err.println("Error checking for updates: " + e.getMessage());
+            }
+
+            final boolean finalUpdateFound = updateFound;
+            Platform.runLater(() -> {
+                updateAvailableLabel.setVisible(finalUpdateFound);
+                updateAvailableLabel.setManaged(finalUpdateFound);
+            });
+        }).start();
     }
 }
