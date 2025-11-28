@@ -4,6 +4,7 @@
 - **Name:** Mejais – League of Legends draft assistant.
 - **Purpose:** Mirrors live champ select through the local League Client API (LCU) and recommends champions based on aggregated high-ELO statistics stored in `data/snapshot.db`.
 - **Scope:** Read-only companion application. Does not inject input, send commands, or alter client behavior.
+- **Background:** I’m a 24-year-old developer who began this as a school project to build a simple League stat lookup site; it evolved into a hobby project focused on draft assistance.
 
 ## Data Sources
 1. **Riot Web APIs (HTTPS):** Used offline via `CollectorRunner` to gather ranked match history and rebuild the local snapshot database.
