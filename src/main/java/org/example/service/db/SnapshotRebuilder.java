@@ -20,7 +20,7 @@ public class SnapshotRebuilder {
             Map<String, ChampionStats> championStatsMap = new HashMap<>();
 
             for (String name : championNames.values()) {
-                championStatsMap.put(name, new ChampionStats())
+                championStatsMap.put(name, new ChampionStats());
             }
 
             loadOverallChampionStats(conn, championStatsMap, championNames);
