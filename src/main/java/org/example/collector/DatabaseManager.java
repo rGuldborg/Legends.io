@@ -1,16 +1,25 @@
 package org.example.collector;
 
-import java.io.File;
+import org.example.util.AppPaths;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DatabaseManager {
-    private static final String DATABASE_URL = "jdbc:sqlite:data/snapshot.db";
+    private static final Path SNAPSHOT_PATH = AppPaths.snapshotPath();
+    private static final String DATABASE_URL = "jdbc:sqlite:" + SNAPSHOT_PATH.toString();
 
     public static Connection connect() throws SQLException {
-        new File("data").mkdirs();
+        try {
+            Files.createDirectories(SNAPSHOT_PATH.getParent());
+        } catch (IOException e) {
+            throw new SQLException("Failed to prepare snapshot directory", e);
+        }
         Connection conn = DriverManager.getConnection(DATABASE_URL);
         initializeDatabase(conn);
         return conn;

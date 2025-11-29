@@ -225,8 +225,11 @@ public final class LeagueClientChampSelectWatcher {
     }
 
     private Optional<Path> locateLockfile() {
-        Path override = Optional.ofNullable(System.getenv("LEAGUE_LOCKFILE_PATH")).map(Path::of).orElse(null);
-        if (override != null && Files.exists(override)) {
+        Path override = Optional.ofNullable(System.getenv("LEAGUE_LOCKFILE_PATH"))
+                .map(Path::of)
+                .filter(Files::exists)
+                .orElse(null);
+        if (override != null) {
             return Optional.of(override);
         }
 
@@ -234,25 +237,49 @@ public final class LeagueClientChampSelectWatcher {
         String os = System.getProperty("os.name", "generic").toLowerCase();
         if (os.contains("win")) {
             String localAppData = System.getenv("LOCALAPPDATA");
-            if (localAppData != null) {
-                candidates.add(Path.of(localAppData, "Riot Games", "League of Legends", "lockfile"));
+            String programFiles = System.getenv("PROGRAMFILES");
+            String programFilesX86 = System.getenv("PROGRAMFILES(X86)");
+            String programW6432 = System.getenv("ProgramW6432");
+            String systemDrive = System.getenv("SystemDrive");
+
+            addWindowsLockfileCandidates(candidates, localAppData);
+            addWindowsProgramCandidates(candidates, programFiles);
+            addWindowsProgramCandidates(candidates, programFilesX86);
+            addWindowsProgramCandidates(candidates, programW6432);
+            if (systemDrive != null && !systemDrive.isBlank()) {
+                Path driveRoot = Path.of(systemDrive + "\\");
+                candidates.add(driveRoot.resolve(Path.of("Riot Games", "League of Legends", "lockfile")));
+                candidates.add(driveRoot.resolve(Path.of("Riot Games", "Riot Client", "Config", "lockfile")));
             }
             candidates.add(Path.of("C:", "Riot Games", "League of Legends", "lockfile"));
-            String programFiles = System.getenv("PROGRAMFILES");
-            if (programFiles != null) {
-                candidates.add(Path.of(programFiles, "Riot Games", "League of Legends", "lockfile"));
-            }
+            candidates.add(Path.of("C:", "Riot Games", "Riot Client", "Config", "lockfile"));
         } else if (os.contains("mac")) {
             candidates.add(Path.of("/Applications/League of Legends.app/Contents/LoL/lockfile"));
             candidates.add(Path.of(System.getProperty("user.home"), "Applications/League of Legends.app/Contents/LoL/lockfile"));
         }
 
         for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
+            if (candidate != null && Files.exists(candidate)) {
                 return Optional.of(candidate);
             }
         }
         return Optional.empty();
+    }
+
+    private void addWindowsLockfileCandidates(List<Path> candidates, String localAppData) {
+        if (localAppData == null || localAppData.isBlank()) return;
+        Path lad = Path.of(localAppData);
+        candidates.add(lad.resolve(Path.of("Riot Games", "League of Legends", "lockfile")));
+        candidates.add(lad.resolve(Path.of("Riot Games", "Riot Client", "Config", "lockfile")));
+        candidates.add(lad.resolve(Path.of("Programs", "League of Legends", "lockfile")));
+        candidates.add(lad.resolve(Path.of("Programs", "Riot Client", "Config", "lockfile")));
+    }
+
+    private void addWindowsProgramCandidates(List<Path> candidates, String base) {
+        if (base == null || base.isBlank()) return;
+        Path root = Path.of(base);
+        candidates.add(root.resolve(Path.of("Riot Games", "League of Legends", "lockfile")));
+        candidates.add(root.resolve(Path.of("Riot Games", "Riot Client", "Config", "lockfile")));
     }
 
     private SSLContext buildSecureContext(Path lockfilePath) {

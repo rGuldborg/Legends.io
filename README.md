@@ -25,10 +25,16 @@ Mejais isn't endorsed by Riot Games and doesn't reflect the views or opinions of
 
 ## Packaging a Windows Installer
 
-To ship a standalone EXE that bundles a private JRE:
+Ship a self-contained Windows build (portable zip + installer) with the helper script:
 
-1. Install JDK 17+ so `jpackage` is available (set `JAVA_HOME` or `JPACKAGE_PATH`).
-2. Place your latest `data/snapshot.db` under the project’s `data/` folder.
-3. Run `powershell packaging/windows/package.ps1 -Version 1.3.0`.
+1. Install JDK 17+ so `jpackage` is available. Either add it to `PATH`, set `JAVA_HOME`, or point `JPACKAGE_PATH` directly at `jpackage.exe`.
+2. Make sure `data/snapshot.db` contains the snapshot you want to distribute (the client reads/writes this file at runtime).
+3. Run `powershell packaging/windows/package.ps1`. Pass `-Version 1.4.0` if you want the installer/app metadata to differ from the `pom.xml` version.
+   - The script automatically downloads the matching JavaFX jmods for Windows x64 into `target/javafx/`, feeds them to `jlink`, and builds a trimmed runtime image (set `JAVAFX_JMODS` to reuse a local cache or `JAVAFX_PLATFORM` for ARM builds).
 
-The script runs `mvn clean package`, copies the app JAR and snapshot into a staging area, and invokes `jpackage` to create `target/installer/dist/Mejais-1.3.0.exe`. Upload that EXE to your website—players won’t need Java installed locally.
+The script performs `mvn package`, stages the shaded JAR together with the `data/` folder, and invokes `jpackage` twice:
+
+- `target/dist/Mejais-<version>-portable.zip` - unzip and run `Mejais.exe` directly (no installer).
+- `target/dist/Mejais-<version>.exe` - a per-user installer that bundles a private JRE, JavaFX, shortcuts, and the snapshot database.
+
+Both artifacts include everything the runtime needs, so end users don't have to install Java or download additional JavaFX modules.

@@ -15,6 +15,7 @@ import org.example.model.WinPlay;
 import org.example.service.db.SnapshotRebuilder;
 import java.sql.SQLException;
 
+import org.example.util.AppPaths;
 import org.example.util.ChampionIconResolver;
 import org.example.util.ChampionNames;
 
@@ -38,7 +39,7 @@ public class RiotStatsService implements StatsService {
     private static final int MIN_TOTAL_GAMES = 30;
     private final Platform platform;
     private final StatsService fallback = new MockStatsService();
-    private final File snapshotFile = new File("data/snapshot.db");
+    private final File snapshotFile = AppPaths.snapshotPath().toFile();
     private StatsSnapshot cachedSnapshot;
     private long cachedStamp = -1L;
 

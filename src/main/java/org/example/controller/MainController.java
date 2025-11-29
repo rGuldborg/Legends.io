@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.ThemeManager;
 import org.example.service.lcu.ChampSelectSnapshot;
 import org.example.service.lcu.LeagueClientChampSelectWatcher;
+import org.example.util.AppPaths;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
@@ -384,7 +385,7 @@ public class MainController {
         if (footerLastUpdatedLabel == null) {
             return;
         }
-        File snapshotFile = new File("data/snapshot.db");
+        File snapshotFile = AppPaths.snapshotPath().toFile();
         if (!snapshotFile.exists()) {
             footerLastUpdatedLabel.setText("Last updated: never");
             return;
@@ -433,7 +434,7 @@ public class MainController {
             boolean updateFound = false;
             long remoteLastModified = -1L;
             try {
-                File localDb = new File("data/snapshot.db");
+                File localDb = AppPaths.snapshotPath().toFile();
                 long localLastModified = localDb.exists() ? localDb.lastModified() : 0;
 
                 URL url = new URL(REMOTE_DB_URL);
@@ -480,7 +481,7 @@ public class MainController {
     }
 
     private void downloadSnapshot() {
-        Path target = Path.of("data", "snapshot.db");
+        Path target = AppPaths.locateDataFile("snapshot.db");
         Path tempFile = null;
         try {
             Files.createDirectories(target.getParent());
