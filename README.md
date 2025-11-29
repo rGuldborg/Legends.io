@@ -18,16 +18,13 @@ Navigate to the 'Champions' tab to see detailed statistics for every champion. S
 ### 4. Role Assignment
 Roles are typically assigned automatically based on the most common positions for each champion. If you're planning an off-meta pick, you can manually change the assigned role to refine the recommendations for your team's unique strategy.
 
+### 5. Load New Match Data
+Keep an eye on the bottom-left corner of the Game view. When the "Load new match database" button lights up (usually a few days after Riot publishes a new patch), click it to pull down the latest matchup data and keep your recommendations fresh.
+
 Ready to climb? Let Mejais guide your draft!
 
 ## Legal
 Mejais isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
-
-### Live Snapshot Updates
-
-When you see the "Load new match database" button light up in the bottom-left corner of the app, it means a fresh
-match snapshot is available (usually a few days after Riot publishes a new patch). Click it to download the latest
-matchups and keep your recommendations current.
 
 ## Packaging a Windows Installer
 
