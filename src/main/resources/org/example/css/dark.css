@@ -347,6 +347,16 @@ Button.header-icon-button:focused {
     -fx-cursor: default;
 }
 
+.update-link {
+    -fx-text-fill: #61a8ff;
+    -fx-underline: true;
+    -fx-cursor: hand;
+}
+
+.update-link:hover {
+    -fx-text-fill: #8ec2ff;
+}
+
 .thin-stroke {
     -fx-stroke-width: 1;
 }

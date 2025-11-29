@@ -72,7 +72,7 @@ public class MainController {
     @FXML private Label updateAvailableLabel;
     @FXML private Label lcuStatusLabel;
     @FXML private Circle lcuStatusIndicator;
-    @FXML private Button updateButton;
+    @FXML private Label updateLink;
 
     private final LeagueClientChampSelectWatcher clientWatcher = new LeagueClientChampSelectWatcher();
     private final SimpleObjectProperty<ChampSelectSnapshot> lcuSnapshot = new SimpleObjectProperty<>();
@@ -97,9 +97,9 @@ public class MainController {
         themeToggleButton.setText("");
         flattenButtons(themeToggleButton,
                 minimizeButton, maximizeButton, closeButton);
-        if (updateButton != null) {
-            updateButton.setVisible(false);
-            updateButton.setManaged(false);
+        if (updateLink != null) {
+            updateLink.setVisible(false);
+            updateLink.setManaged(false);
         }
         updateThemeIcon();
         Platform.runLater(() -> {
@@ -237,12 +237,12 @@ public class MainController {
 
     @FXML
     private void onUpdateSnapshot() {
-        if (updateButton == null || updateInProgress || REMOTE_DB_URL.isBlank()) {
+        if (updateLink == null || updateInProgress || REMOTE_DB_URL.isBlank()) {
             return;
         }
         updateInProgress = true;
-        updateButton.setDisable(true);
-        updateButton.setText("Updating...");
+        updateLink.setDisable(true);
+        updateLink.setText("Updating...");
         new Thread(this::downloadSnapshot).start();
     }
 
@@ -433,7 +433,7 @@ public class MainController {
     }
 
     private void checkAndUpdateStatus() {
-        if ((updateAvailableLabel == null && updateButton == null) || REMOTE_DB_URL.isBlank()) {
+        if ((updateAvailableLabel == null && updateLink == null) || REMOTE_DB_URL.isBlank()) {
             return;
         }
 
@@ -480,24 +480,23 @@ public class MainController {
     }
 
     private void updateUpdateUi(boolean available, boolean versionMismatch, long remoteStamp) {
-        if (updateAvailableLabel != null) {
-            updateAvailableLabel.setVisible(available);
-            updateAvailableLabel.setManaged(available);
+        if (updateAvailableLabel != null && updateLink != null) {
             if (available) {
                 updateAvailableLabel.setText(versionMismatch ? "New Mejais build available!" : "Snapshot update ready!");
-            }
-        }
-        if (updateButton != null) {
-            updateButton.setVisible(available);
-            updateButton.setManaged(available);
-            if (available) {
-                updateButton.setDisable(updateInProgress);
+                updateAvailableLabel.setVisible(true);
+                updateAvailableLabel.setManaged(true);
+                updateLink.setDisable(updateInProgress);
+                updateLink.setVisible(true);
+                updateLink.setManaged(true);
                 if (!updateInProgress) {
-                    updateButton.setText("Update Mejais");
+                    updateLink.setText("Update Mejais");
                 }
             } else {
-                updateButton.setDisable(false);
-                updateButton.setText("Update Mejais");
+                updateAvailableLabel.setVisible(false);
+                updateAvailableLabel.setManaged(false);
+                updateLink.setDisable(false);
+                updateLink.setVisible(false);
+                updateLink.setManaged(false);
             }
         }
     }
@@ -536,9 +535,9 @@ public class MainController {
                     updateAvailableLabel.setVisible(true);
                     updateAvailableLabel.setManaged(true);
                 }
-                if (updateButton != null) {
-                    updateButton.setDisable(false);
-                    updateButton.setText("Retry update");
+                if (updateLink != null) {
+                    updateLink.setDisable(false);
+                    updateLink.setText("Retry update");
                 }
             });
         } finally {
@@ -549,9 +548,9 @@ public class MainController {
             }
             updateInProgress = false;
             Platform.runLater(() -> {
-                if (updateButton != null) {
-                    updateButton.setDisable(false);
-                    updateButton.setText("Update Mejais");
+                if (updateLink != null) {
+                    updateLink.setDisable(false);
+                    updateLink.setText("Update Mejais");
                 }
             });
             checkAndUpdateStatus();
