@@ -23,6 +23,12 @@ Ready to climb? Let Mejais guide your draft!
 ## Legal
 Mejais isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
 
+### Live Snapshot Updates
+
+When you see the "Load new match database" button light up in the bottom-left corner of the app, it means a fresh
+match snapshot is available (usually a few days after Riot publishes a new patch). Click it to download the latest
+matchups and keep your recommendations current.
+
 ## Packaging a Windows Installer
 
 Ship a self-contained Windows build (portable zip + installer) with the helper script:
@@ -40,12 +46,3 @@ The script performs `mvn package`, stages the shaded JAR together with the `data
 - `target/dist/Mejais-<version>.exe` - a per-user installer that bundles a private JRE, JavaFX, shortcuts, and the snapshot database.
 
 Both artifacts include everything the runtime needs, so end users don't have to install Java or download additional JavaFX modules.
-
-### Live Snapshot Updates
-
-Out of the box the app fetches its remote snapshot from
-`https://raw.githubusercontent.com/rGuldborg/mejais/main/data/snapshot.db`. Whenever that file is updated
-on GitHub, its `Last-Modified` header changes, and the running client will surface the
-"Update Available / Update now" footer button once it detects the newer timestamp. Point the app at a different
-host by setting the `SNAPSHOT_REMOTE_URL` system property or environment variable before launching the
-development build or installer.
