@@ -44,10 +44,8 @@ public class MainController {
     private static final DateTimeFormatter FOOTER_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String ACTIVE_TAB_CLASS = "tab-chip-active";
     private static final String DEFAULT_SNAPSHOT_URL = "https://raw.githubusercontent.com/rGuldborg/mejais/master/data/snapshot.db";
-    private static final String REMOTE_DB_URL = Optional.ofNullable(System.getProperty("SNAPSHOT_REMOTE_URL"))
-            .filter(url -> !url.isBlank())
-            .or(() -> Optional.ofNullable(System.getenv("SNAPSHOT_REMOTE_URL")).filter(url -> !url.isBlank()))
-            .orElse(DEFAULT_SNAPSHOT_URL);
+    private static final String REMOTE_DB_URL = resolveSnapshotUrl();
+    private static final String LOCAL_VERSION = VersionUtil.version();
 
 
     @FXML private TextField searchField;
@@ -435,6 +433,7 @@ public class MainController {
         new Thread(() -> {
             boolean updateFound = false;
             long remoteLastModified = -1L;
+            boolean versionMismatch = false;
             try {
                 File localDb = AppPaths.snapshotPath().toFile();
                 long localLastModified = localDb.exists() ? localDb.lastModified() : 0;
@@ -445,8 +444,9 @@ public class MainController {
                 connection.connect();
 
                 remoteLastModified = connection.getLastModified();
-                
-                if (remoteLastModified > localLastModified) {
+                versionMismatch = !REMOTE_DB_URL.contains(LOCAL_VERSION);
+
+                if (versionMismatch || remoteLastModified > localLastModified) {
                     updateFound = true;
                 }
             } catch (IOException e) {
@@ -455,16 +455,17 @@ public class MainController {
 
             final boolean finalUpdateFound = updateFound;
             final long remoteStamp = remoteLastModified;
-            Platform.runLater(() -> updateUpdateUi(finalUpdateFound, remoteStamp));
+            final boolean finalVersionMismatch = versionMismatch;
+            Platform.runLater(() -> updateUpdateUi(finalUpdateFound, finalVersionMismatch, remoteStamp));
         }).start();
     }
 
-    private void updateUpdateUi(boolean available, long remoteStamp) {
+    private void updateUpdateUi(boolean available, boolean versionMismatch, long remoteStamp) {
         if (updateAvailableLabel != null) {
             updateAvailableLabel.setVisible(available);
             updateAvailableLabel.setManaged(available);
             if (available) {
-                updateAvailableLabel.setText("Update Available!");
+                updateAvailableLabel.setText(versionMismatch ? "New version available!" : "Update Available!");
             }
         }
         if (updateButton != null) {
@@ -535,3 +536,9 @@ public class MainController {
         }
     }
 }
+    private static String resolveSnapshotUrl() {
+        return Optional.ofNullable(System.getProperty("SNAPSHOT_REMOTE_URL"))
+                .filter(url -> !url.isBlank())
+                .or(() -> Optional.ofNullable(System.getenv("SNAPSHOT_REMOTE_URL")).filter(url -> !url.isBlank()))
+                .orElse(DEFAULT_SNAPSHOT_URL);
+    }
