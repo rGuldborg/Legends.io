@@ -135,9 +135,8 @@
             <Label fx:id="footerLastUpdatedLabel" text="Last updated: --" styleClass="footer-text"/>
             <Label text="|" styleClass="footer-text"/>
             <Label fx:id="patchLabel" text="Patch: --" styleClass="footer-text"/>
-            <Label fx:id="updateAvailableLabel" text="Update Available!" styleClass="footer-text" visible="false" managed="false"/>
-            <Label fx:id="updateLink"
-                   text="Update Mejais"
+            <Label fx:id="updateAvailableLabel"
+                   text="Update Available!"
                    visible="false"
                    managed="false"
                    onMouseClicked="#onUpdateSnapshot"

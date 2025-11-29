@@ -72,7 +72,6 @@ public class MainController {
     @FXML private Label updateAvailableLabel;
     @FXML private Label lcuStatusLabel;
     @FXML private Circle lcuStatusIndicator;
-    @FXML private Label updateLink;
 
     private final LeagueClientChampSelectWatcher clientWatcher = new LeagueClientChampSelectWatcher();
     private final SimpleObjectProperty<ChampSelectSnapshot> lcuSnapshot = new SimpleObjectProperty<>();
@@ -97,9 +96,9 @@ public class MainController {
         themeToggleButton.setText("");
         flattenButtons(themeToggleButton,
                 minimizeButton, maximizeButton, closeButton);
-        if (updateLink != null) {
-            updateLink.setVisible(false);
-            updateLink.setManaged(false);
+        if (updateAvailableLabel != null) {
+            updateAvailableLabel.setVisible(false);
+            updateAvailableLabel.setManaged(false);
         }
         updateThemeIcon();
         Platform.runLater(() -> {
@@ -237,12 +236,12 @@ public class MainController {
 
     @FXML
     private void onUpdateSnapshot() {
-        if (updateLink == null || updateInProgress || REMOTE_DB_URL.isBlank()) {
+        if (updateAvailableLabel == null || updateInProgress || REMOTE_DB_URL.isBlank()) {
             return;
         }
         updateInProgress = true;
-        updateLink.setDisable(true);
-        updateLink.setText("Updating...");
+        updateAvailableLabel.setDisable(true);
+        updateAvailableLabel.setText("Updating...");
         new Thread(this::downloadSnapshot).start();
     }
 
@@ -433,7 +432,7 @@ public class MainController {
     }
 
     private void checkAndUpdateStatus() {
-        if ((updateAvailableLabel == null && updateLink == null) || REMOTE_DB_URL.isBlank()) {
+        if (updateAvailableLabel == null || REMOTE_DB_URL.isBlank()) {
             return;
         }
 
@@ -480,24 +479,16 @@ public class MainController {
     }
 
     private void updateUpdateUi(boolean available, boolean versionMismatch, long remoteStamp) {
-        if (updateAvailableLabel != null && updateLink != null) {
-            if (available) {
-                updateAvailableLabel.setText(versionMismatch ? "New Mejais build available!" : "Snapshot update ready!");
-                updateAvailableLabel.setVisible(true);
-                updateAvailableLabel.setManaged(true);
-                updateLink.setDisable(updateInProgress);
-                updateLink.setVisible(true);
-                updateLink.setManaged(true);
-                if (!updateInProgress) {
-                    updateLink.setText("Update Mejais");
-                }
-            } else {
-                updateAvailableLabel.setVisible(false);
-                updateAvailableLabel.setManaged(false);
-                updateLink.setDisable(false);
-                updateLink.setVisible(false);
-                updateLink.setManaged(false);
-            }
+        if (updateAvailableLabel == null) return;
+        if (available) {
+            updateAvailableLabel.setText(versionMismatch ? "New Mejais build available!" : "Snapshot update ready!");
+            updateAvailableLabel.setVisible(true);
+            updateAvailableLabel.setManaged(true);
+            updateAvailableLabel.setDisable(updateInProgress);
+        } else {
+            updateAvailableLabel.setVisible(false);
+            updateAvailableLabel.setManaged(false);
+            updateAvailableLabel.setDisable(false);
         }
     }
 
@@ -534,10 +525,7 @@ public class MainController {
                     updateAvailableLabel.setText("Update failed. Try again.");
                     updateAvailableLabel.setVisible(true);
                     updateAvailableLabel.setManaged(true);
-                }
-                if (updateLink != null) {
-                    updateLink.setDisable(false);
-                    updateLink.setText("Retry update");
+                    updateAvailableLabel.setDisable(false);
                 }
             });
         } finally {
@@ -548,9 +536,8 @@ public class MainController {
             }
             updateInProgress = false;
             Platform.runLater(() -> {
-                if (updateLink != null) {
-                    updateLink.setDisable(false);
-                    updateLink.setText("Update Mejais");
+                if (updateAvailableLabel != null) {
+                    updateAvailableLabel.setDisable(false);
                 }
             });
             checkAndUpdateStatus();
