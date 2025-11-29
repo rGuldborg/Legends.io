@@ -70,6 +70,7 @@ public class MainController {
     @FXML private Label footerLastUpdatedLabel;
     @FXML private Label patchLabel;
     @FXML private Label updateAvailableLabel;
+    @FXML private Label updateSeparator;
     @FXML private Label lcuStatusLabel;
     @FXML private Circle lcuStatusIndicator;
 
@@ -99,6 +100,10 @@ public class MainController {
         if (updateAvailableLabel != null) {
             updateAvailableLabel.setVisible(false);
             updateAvailableLabel.setManaged(false);
+        }
+        if (updateSeparator != null) {
+            updateSeparator.setVisible(false);
+            updateSeparator.setManaged(false);
         }
         updateThemeIcon();
         Platform.runLater(() -> {
@@ -485,10 +490,18 @@ public class MainController {
             updateAvailableLabel.setVisible(true);
             updateAvailableLabel.setManaged(true);
             updateAvailableLabel.setDisable(updateInProgress);
+            if (updateSeparator != null) {
+                updateSeparator.setVisible(true);
+                updateSeparator.setManaged(true);
+            }
         } else {
             updateAvailableLabel.setVisible(false);
             updateAvailableLabel.setManaged(false);
             updateAvailableLabel.setDisable(false);
+            if (updateSeparator != null) {
+                updateSeparator.setVisible(false);
+                updateSeparator.setManaged(false);
+            }
         }
     }
 
@@ -526,6 +539,10 @@ public class MainController {
                     updateAvailableLabel.setVisible(true);
                     updateAvailableLabel.setManaged(true);
                     updateAvailableLabel.setDisable(false);
+                }
+                if (updateSeparator != null) {
+                    updateSeparator.setVisible(true);
+                    updateSeparator.setManaged(true);
                 }
             });
         } finally {

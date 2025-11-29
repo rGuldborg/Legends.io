@@ -30,6 +30,10 @@
     -fx-text-fill: #f5f6fb;
 }
 
+.footer-text.update-link {
+    -fx-text-fill: #61a8ff;
+}
+
 .window-header {
     -fx-background-color: #1f2128;
     -fx-padding: 8 14 8 14;
@@ -348,7 +352,6 @@ Button.header-icon-button:focused {
 }
 
 .update-link {
-    -fx-text-fill: #61a8ff;
     -fx-underline: true;
     -fx-cursor: hand;
 }
