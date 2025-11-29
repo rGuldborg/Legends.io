@@ -6,27 +6,37 @@ import java.util.Properties;
 
 final class VersionUtil {
     private static final String VERSION;
+    private static final String COMMIT;
 
     static {
-        VERSION = loadVersion();
+        VERSION = loadProperty("/app.properties", "app.version", "dev");
+        Properties gitProps = loadProperties("/git.properties");
+        String abbrev = gitProps.getProperty("git.commit.id.abbrev");
+        COMMIT = abbrev != null ? abbrev : gitProps.getProperty("git.commit.id", "dev");
     }
 
     private VersionUtil() {}
 
-    private static String loadVersion() {
-        try (InputStream stream = VersionUtil.class.getResourceAsStream("/app.properties")) {
-            if (stream == null) {
-                return "dev";
+    private static Properties loadProperties(String resource) {
+        Properties props = new Properties();
+        try (InputStream stream = VersionUtil.class.getResourceAsStream(resource)) {
+            if (stream != null) {
+                props.load(stream);
             }
-            Properties props = new Properties();
-            props.load(stream);
-            return props.getProperty("app.version", "dev");
-        } catch (IOException ex) {
-            return "dev";
+        } catch (IOException ignored) {
         }
+        return props;
+    }
+
+    private static String loadProperty(String resource, String key, String defaultValue) {
+        return loadProperties(resource).getProperty(key, defaultValue);
     }
 
     static String version() {
         return VERSION;
+    }
+
+    static String commit() {
+        return COMMIT;
     }
 }

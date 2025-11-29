@@ -20,6 +20,7 @@ import org.example.ThemeManager;
 import org.example.service.lcu.ChampSelectSnapshot;
 import org.example.service.lcu.LeagueClientChampSelectWatcher;
 import org.example.util.AppPaths;
+import org.example.util.DebugLog;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
@@ -45,7 +46,13 @@ public class MainController {
     private static final String ACTIVE_TAB_CLASS = "tab-chip-active";
     private static final String DEFAULT_SNAPSHOT_URL = "https://raw.githubusercontent.com/rGuldborg/mejais/master/data/snapshot.db";
     private static final String REMOTE_DB_URL = resolveSnapshotUrl();
+    private static final String DEFAULT_COMMITS_URL = "https://api.github.com/repos/rGuldborg/mejais/commits/master";
+    private static final String REMOTE_COMMITS_URL = Optional.ofNullable(System.getProperty("MEJAIS_COMMITS_URL"))
+            .filter(url -> !url.isBlank())
+            .or(() -> Optional.ofNullable(System.getenv("MEJAIS_COMMITS_URL")).filter(url -> !url.isBlank()))
+            .orElse(DEFAULT_COMMITS_URL);
     private static final String LOCAL_VERSION = VersionUtil.version();
+    private static final String LOCAL_COMMIT = VersionUtil.commit();
 
 
     @FXML private TextField searchField;
@@ -433,10 +440,12 @@ public class MainController {
         new Thread(() -> {
             boolean updateFound = false;
             long remoteLastModified = -1L;
-            boolean versionMismatch = false;
+            boolean newBuildAvailable = false;
             try {
                 File localDb = AppPaths.snapshotPath().toFile();
                 long localLastModified = localDb.exists() ? localDb.lastModified() : 0;
+                DebugLog.log("[Update] Local snapshot timestamp=" + localLastModified);
+                DebugLog.log("[Update] Checking remote snapshot at " + REMOTE_DB_URL);
 
                 URL url = new URL(REMOTE_DB_URL);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -444,19 +453,29 @@ public class MainController {
                 connection.connect();
 
                 remoteLastModified = connection.getLastModified();
-                versionMismatch = !REMOTE_DB_URL.contains(LOCAL_VERSION);
+                DebugLog.log("[Update] Remote Last-Modified=" + remoteLastModified);
 
-                if (versionMismatch || remoteLastModified > localLastModified) {
+                String remoteCommit = fetchRemoteCommitSha();
+                if (remoteCommit != null && !remoteCommit.equalsIgnoreCase(LOCAL_COMMIT)) {
+                    newBuildAvailable = true;
+                    DebugLog.log("[Update] Remote commit " + remoteCommit + " differs from local " + LOCAL_COMMIT);
+                }
+
+                if (newBuildAvailable || remoteLastModified > localLastModified) {
                     updateFound = true;
+                    DebugLog.log("[Update] Update flagged (buildAvailable=" + newBuildAvailable + ")");
+                } else {
+                    DebugLog.log("[Update] Snapshot already up to date.");
                 }
             } catch (IOException e) {
                 System.err.println("Error checking for updates: " + e.getMessage());
+                DebugLog.log("[Update] Error checking for updates: " + e.getMessage());
             }
 
             final boolean finalUpdateFound = updateFound;
             final long remoteStamp = remoteLastModified;
-            final boolean finalVersionMismatch = versionMismatch;
-            Platform.runLater(() -> updateUpdateUi(finalUpdateFound, finalVersionMismatch, remoteStamp));
+            final boolean finalNewBuildAvailable = newBuildAvailable;
+            Platform.runLater(() -> updateUpdateUi(finalUpdateFound, finalNewBuildAvailable, remoteStamp));
         }).start();
     }
 
@@ -465,7 +484,7 @@ public class MainController {
             updateAvailableLabel.setVisible(available);
             updateAvailableLabel.setManaged(available);
             if (available) {
-                updateAvailableLabel.setText(versionMismatch ? "New version available!" : "Update Available!");
+                updateAvailableLabel.setText(versionMismatch ? "New Mejais build available!" : "Snapshot update ready!");
             }
         }
         if (updateButton != null) {
@@ -474,11 +493,11 @@ public class MainController {
             if (available) {
                 updateButton.setDisable(updateInProgress);
                 if (!updateInProgress) {
-                    updateButton.setText("Load new match database");
+                    updateButton.setText("Update Mejais");
                 }
             } else {
                 updateButton.setDisable(false);
-                updateButton.setText("Load new match database");
+                updateButton.setText("Update Mejais");
             }
         }
     }
@@ -493,6 +512,7 @@ public class MainController {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setUseCaches(false);
+            DebugLog.log("[Update] Downloading snapshot from " + REMOTE_DB_URL);
             try (InputStream in = connection.getInputStream();
                  OutputStream out = Files.newOutputStream(tempFile)) {
                 byte[] buffer = new byte[8192];
@@ -502,12 +522,14 @@ public class MainController {
                 }
             }
             Files.move(tempFile, target, StandardCopyOption.REPLACE_EXISTING);
+            DebugLog.log("[Update] Snapshot download complete.");
             Platform.runLater(() -> {
                 updateSnapshotTimestamp();
-                updateUpdateUi(false, -1L);
+                updateUpdateUi(false, false, -1L);
             });
         } catch (Exception e) {
             System.err.println("Failed to update snapshot: " + e.getMessage());
+            DebugLog.log("[Update] Failed to update snapshot: " + e.getMessage());
             Platform.runLater(() -> {
                 if (updateAvailableLabel != null) {
                     updateAvailableLabel.setText("Update failed. Try again.");
@@ -529,16 +551,44 @@ public class MainController {
             Platform.runLater(() -> {
                 if (updateButton != null) {
                     updateButton.setDisable(false);
-                    updateButton.setText("Update now");
+                    updateButton.setText("Update Mejais");
                 }
             });
             checkAndUpdateStatus();
         }
     }
-}
+
+    private String fetchRemoteCommitSha() {
+        if (REMOTE_COMMITS_URL == null || REMOTE_COMMITS_URL.isBlank()) {
+            return null;
+        }
+        try {
+            URL url = new URL(REMOTE_COMMITS_URL);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
+            connection.setUseCaches(false);
+            connection.connect();
+            if (connection.getResponseCode() >= 300) {
+                DebugLog.log("[Update] Commit API responded with status " + connection.getResponseCode());
+                return null;
+            }
+            try (InputStream in = connection.getInputStream()) {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode node = mapper.readTree(in);
+                JsonNode shaNode = node.get("sha");
+                return shaNode != null ? shaNode.asText() : null;
+            }
+        } catch (IOException e) {
+            DebugLog.log("[Update] Failed to fetch remote commit: " + e.getMessage());
+            return null;
+        }
+    }
+
     private static String resolveSnapshotUrl() {
         return Optional.ofNullable(System.getProperty("SNAPSHOT_REMOTE_URL"))
                 .filter(url -> !url.isBlank())
                 .or(() -> Optional.ofNullable(System.getenv("SNAPSHOT_REMOTE_URL")).filter(url -> !url.isBlank()))
                 .orElse(DEFAULT_SNAPSHOT_URL);
     }
+}
