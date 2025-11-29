@@ -60,9 +60,9 @@
                     <Text text="Roles are typically assigned automatically based on the most common positions for each champion. If you're planning an off-meta pick, you can manually change the assigned role to refine the recommendations for your team's unique strategy."/>
                 </TextFlow>
 
-                <Label text="5. Stay Updated" styleClass="help-subheader"/>
+                <Label text="5. Load New Matches" styleClass="help-subheader"/>
                 <TextFlow styleClass="help-body-text" textAlignment="CENTER">
-                    <Text text="Watch the bottom-left corner of the Game view. When the 'Update Mejais' button lights up (usually after a new GitHub push or Riot patch), click it to pull down the latest build and matchup data so your recommendations stay fresh."/>
+                    <Text text="Keep an eye on the bottom-left corner of the Game view. When the 'Load new match database' link lights up (usually a few days after Riot releases a new patch), click it to fetch the latest matchup data and keep your recommendations current."/>
                 </TextFlow>
 
                 <Label text="Legal Notice" styleClass="help-subheader"/>
