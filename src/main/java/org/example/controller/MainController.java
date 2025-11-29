@@ -93,6 +93,7 @@ public class MainController {
     public void initialize() {
 
         ThemeManager.applyTheme("dark.css");
+        refreshUpdateLinkStyle();
 
         themeToggleButton.setText("");
         flattenButtons(themeToggleButton,
@@ -180,6 +181,7 @@ public class MainController {
         } else {
             ThemeManager.applyTheme("light.css");
         }
+        refreshUpdateLinkStyle();
     }
 
     @FXML
@@ -245,7 +247,6 @@ public class MainController {
             return;
         }
         updateInProgress = true;
-        updateAvailableLabel.setDisable(true);
         updateAvailableLabel.setText("Updating...");
         new Thread(this::downloadSnapshot).start();
     }
@@ -489,7 +490,7 @@ public class MainController {
             updateAvailableLabel.setText(versionMismatch ? "New Mejais build available!" : "Snapshot update ready!");
             updateAvailableLabel.setVisible(true);
             updateAvailableLabel.setManaged(true);
-            updateAvailableLabel.setDisable(updateInProgress);
+            refreshUpdateLinkStyle();
             if (updateSeparator != null) {
                 updateSeparator.setVisible(true);
                 updateSeparator.setManaged(true);
@@ -497,7 +498,6 @@ public class MainController {
         } else {
             updateAvailableLabel.setVisible(false);
             updateAvailableLabel.setManaged(false);
-            updateAvailableLabel.setDisable(false);
             if (updateSeparator != null) {
                 updateSeparator.setVisible(false);
                 updateSeparator.setManaged(false);
@@ -538,7 +538,7 @@ public class MainController {
                     updateAvailableLabel.setText("Update failed. Try again.");
                     updateAvailableLabel.setVisible(true);
                     updateAvailableLabel.setManaged(true);
-                    updateAvailableLabel.setDisable(false);
+                    refreshUpdateLinkStyle();
                 }
                 if (updateSeparator != null) {
                     updateSeparator.setVisible(true);
@@ -554,11 +554,20 @@ public class MainController {
             updateInProgress = false;
             Platform.runLater(() -> {
                 if (updateAvailableLabel != null) {
-                    updateAvailableLabel.setDisable(false);
+                    refreshUpdateLinkStyle();
                 }
             });
             checkAndUpdateStatus();
         }
+    }
+
+    private void refreshUpdateLinkStyle() {
+        if (updateAvailableLabel == null) return;
+        if (!updateAvailableLabel.getStyleClass().contains("update-link")) {
+            updateAvailableLabel.getStyleClass().add("update-link");
+        }
+        String color = ThemeManager.currentTheme() == ThemeManager.Theme.DARK ? "#61a8ff" : "#1b6fd8";
+        updateAvailableLabel.setStyle("-fx-text-fill: " + color + ";");
     }
 
     private String fetchRemoteCommitSha() {
